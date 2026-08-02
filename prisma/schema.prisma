@@ -1,0 +1,700 @@
+// Voyana — Travel lead-gen + distribution + CMS
+// SQLite has no native enums/arrays, so status fields are Strings (see lib/constants.ts)
+// and list-like data is stored as JSON strings or child tables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth / people
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  authId       String?  @unique // Supabase auth.users UUID (identity lives in Supabase Auth)
+  passwordHash String?  // legacy — retained for rollback; Supabase Auth owns credentials now
+  name         String
+  role         String   @default("CUSTOMER") // ADMIN | AGENT | CUSTOMER
+  adminRole    String?  // for ADMIN users: SUPER_ADMIN|LEAD_MANAGER|SALES_MANAGER|FINANCE_ADMIN|SUPPORT_ADMIN|MARKETING_ADMIN|CONTENT_ADMIN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agent         Agent?
+  notifications Notification[]
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  phone       String
+  city        String?
+  status      String   @default("PENDING") // PENDING | APPROVED | SUSPENDED | REJECTED
+
+  // personal profile
+  firstName    String?
+  lastName     String?
+  profileImage String?
+  personalEmail String?
+
+  // company profile
+  state          String?
+  companyAddress String?
+  companyEmail   String?
+  contactPerson  String?
+  contactNo      String?
+  website        String?
+  socials        String? // JSON: { facebook, twitter, youtube, linkedin, googleBusiness }
+
+  // verification (admin-controlled; vendor cannot self-verify)
+  verificationStatus String   @default("PENDING") // PENDING | UNDER_REVIEW | VERIFIED | REJECTED | SUSPENDED
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  verificationNotes  String?
+
+  // preferences
+  lowWalletThreshold Int?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wallet       AgentWallet?
+  creditBalance AgentCreditBalance?
+  assignments  LeadAssignment[]
+  transactions WalletTransaction[]
+  payments     LeadPayment[]
+  topups       WalletTopup[]
+  creditPurchases LeadCreditPurchase[]
+  creditLedger    LeadCreditLedger[]
+  preference   AgentPreference?
+  spamReports  SpamReport[]
+  tickets      SupportTicket[]
+  ads          VendorAd[]
+}
+
+model AgentPreference {
+  id      String @id @default(cuid())
+  agentId String @unique
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  // lead alerts
+  alertEmail       Boolean @default(true)
+  alertInApp       Boolean @default(true)
+  alertCategories  String? // JSON array: DOMESTIC|INTERNATIONAL|INBOUND
+  alertDestinations String? // JSON array of keywords
+  alertClientLocations String? // JSON array of keywords
+  alertMinQuality  String? // POOR|AVERAGE|GOOD|EXCELLENT
+  alertMinBudget   Int?
+  alertMaxBudget   Int?
+  alertMinLeadPrice Int?
+  alertMaxLeadPrice Int?
+  alertTravelDateFrom DateTime?
+  alertTravelDateTo   DateTime?
+  alertTripTypes   String? // JSON array of keywords
+
+  // auto-buy
+  autoBuyEnabled       Boolean @default(false)
+  autoBuyCategories    String? // JSON array
+  autoBuyDestinations  String? // JSON array of keywords
+  autoBuyClientLocations String? // JSON array of keywords
+  autoBuyMinQuality    String?
+  autoBuyMinBudget     Int?
+  autoBuyMaxBudget     Int?
+  autoBuyMaxPrice      Int?
+  autoBuyTravelDateFrom DateTime?
+  autoBuyTravelDateTo   DateTime?
+  autoBuyTripTypes     String? // JSON array of keywords
+  autoBuyDailyLimit    Int?
+  autoBuyMonthlyBudget Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SpamReport {
+  id           String   @id @default(cuid())
+  leadId       String
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId      String
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  leadAssignmentId String?
+  leadAssignment   LeadAssignment? @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
+  reason       String   // wrong_number|fake|duplicate|not_interested|invalid|already_booked|other
+  notes        String?
+  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  resolution   String?  // refund | credit | none
+  createdAt    DateTime @default(now())
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  refundedAt   DateTime?
+  refundAmount Int?
+  refundWalletTransactionId String?
+
+  @@unique([leadId, agentId])
+  @@index([status])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  subject   String
+  category  String   @default("general") // general|billing|leads|technical|other
+  status    String   @default("OPEN") // OPEN|IN_PROGRESS|WAITING_VENDOR|RESOLVED|CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages  SupportMessage[]
+
+  @@index([status])
+  @@index([agentId])
+}
+
+model SupportMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorType  String   // AGENT | ADMIN
+  authorLabel String?
+  body        String
+  internal    Boolean  @default(false) // admin-only internal note
+  createdAt   DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model VendorAd {
+  id             String   @id @default(cuid())
+  agentId        String
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  imageUrl       String?
+  landingUrl     String?
+  destination    String?
+  clientLocation String?
+  category       String?  // DOMESTIC|INTERNATIONAL|INBOUND
+  dailyBudget    Int?
+  maxBid         Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  status         String   @default("DRAFT") // DRAFT|PENDING|APPROVED|REJECTED|PAUSED|EXPIRED
+  impressions    Int      @default(0)
+  clicks         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([agentId])
+}
+
+model WalletTopup {
+  id         String   @id @default(cuid())
+  agentId    String
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  amount     Int      // whole rupees
+  currency   String   @default("INR")
+  provider   String   @default("razorpay")
+  orderId    String   @unique
+  paymentId  String?
+  status     String   @default("CREATED") // CREATED | PAID | FAILED
+  leadCreditPurchaseId String? @unique
+  leadCreditPurchase   LeadCreditPurchase? @relation(fields: [leadCreditPurchaseId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([agentId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // verification | wallet | lead | purchase | support | system
+  title     String
+  body      String?
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model AgentWallet {
+  id        String   @id @default(cuid())
+  agentId   String   @unique
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0) // whole rupees
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String   @id @default(cuid())
+  walletId     String
+  wallet       AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  agentId      String
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  type         String   // CREDIT | DEBIT
+  amount       Int
+  balanceAfter Int
+  description  String
+  leadId       String?
+  createdAt    DateTime @default(now())
+}
+
+model AgentCreditBalance {
+  id        String   @id @default(cuid())
+  agentId   String   @unique
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeadCreditPackage {
+  id           String   @id @default(cuid())
+  name         String
+  credits      Int
+  priceInr     Int
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchases LeadCreditPurchase[]
+  ledger    LeadCreditLedger[]
+
+  @@index([isActive, displayOrder])
+}
+
+model LeadCreditPurchase {
+  id              String   @id @default(cuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  packageId       String
+  package         LeadCreditPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  packageName     String
+  credits         Int
+  priceInr        Int
+  currency        String   @default("INR")
+  provider        String   @default("razorpay")
+  orderId         String   @unique
+  paymentId       String?
+  status          String   @default("CREATED") // CREATED | PAID | FAILED
+  createdAt       DateTime @default(now())
+  paidAt          DateTime?
+  updatedAt       DateTime @updatedAt
+
+  walletTopup WalletTopup?
+
+  @@index([agentId])
+  @@index([status])
+}
+
+model LeadCreditLedger {
+  id               String   @id @default(cuid())
+  agentId          String
+  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  creditAmount     Int
+  balanceAfter     Int
+  type             String   // CREDIT_PURCHASE | LEAD_PURCHASE | CREDIT_REFUND | ADMIN_ADJUSTMENT
+  description      String
+  referenceId      String?
+  packageId        String?
+  package          LeadCreditPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  leadAssignmentId String?
+  leadAssignment   LeadAssignment? @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
+  leadId           String?
+  adminId          String?
+  createdAt        DateTime @default(now())
+
+  @@index([agentId, createdAt])
+  @@index([type])
+  @@index([referenceId])
+}
+
+// ---------------------------------------------------------------------------
+// Lead engine
+// ---------------------------------------------------------------------------
+
+model Lead {
+  id   String @id @default(cuid())
+  code String @unique // LD-2026-000001
+
+  // customer
+  customerName String
+  phone        String
+  email        String?
+
+  // trip
+  destinationText String
+  departureCity   String?
+  travelDate      DateTime?
+  travelDateText  String?
+  travelers       Int?
+  budget          Int?
+  tripType        String?
+  requirements    String? // JSON array of strings
+  message         String?
+
+  // classification
+  status          String  @default("NEW")        // see LEAD_STATUSES
+  quality         String  @default("UNREVIEWED")  // POOR|AVERAGE|GOOD|EXCELLENT|UNREVIEWED
+  qualityScore    Int?
+  qualityOverride Boolean @default(false)
+  price           Int?
+  assignmentCount Int     @default(0)
+  maxAgents       Int     @default(2)
+  isDuplicate     Boolean @default(false)
+  expiresAt       DateTime?
+
+  // source (unified across every ingestion channel)
+  source      String  @default("website") // website|google|meta|organic|direct|referral|whatsapp|manual|partner|api
+  sourceType  String  @default("website")  // website|google_lead_form|meta_lead_form|api|manual
+  externalId  String?  // provider lead id, for idempotency
+
+  // categorisation for the marketplace
+  tripCategory   String? // DOMESTIC | INTERNATIONAL | INBOUND
+  clientLocation String? // where the customer is based (distinct from destination)
+
+  // attribution
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+  gclid       String?
+  gbraid      String?
+  wbraid      String?
+  fbclid      String?
+  campaignId  String?
+  adGroupId   String?
+  keyword     String?
+  creativeId  String?
+  device      String?
+  browser     String?
+  referrer    String?
+  landingPage String?
+  firstPage   String?
+  lastPage    String?
+
+  // deduplication (never destructive — flags + links to the original)
+  duplicateOfId String?
+  duplicateOf   Lead?   @relation("LeadDuplicates", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates    Lead[]  @relation("LeadDuplicates")
+
+  // CMS relationships (nullable — leads work without content)
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+  packageId     String?
+  package       TourPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  // historical snapshots so lead records survive content edits/unpublish
+  packageSnapshotName  String?
+  packageSnapshotPrice Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments   LeadAssignment[]
+  statusHistory LeadStatusHistory[]
+  notes         LeadNote[]
+  payments      LeadPayment[]
+  spamReports   SpamReport[]
+
+  @@unique([source, externalId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([phone])
+  @@index([source])
+}
+
+model LeadAssignment {
+  id      String @id @default(cuid())
+  leadId  String
+  lead    Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  price   Int
+  status  String @default("PURCHASED") // PURCHASED|CONTACTED|INTERESTED|QUOTE_SENT|NEGOTIATING|BOOKED|WON|LOST|NO_RESPONSE|SPAM
+  bookedValue Int?
+  bookedAt    DateTime?
+  bookingNotes String?
+  purchasedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  history LeadAssignmentStatusHistory[]
+  spamReports SpamReport[]
+  creditLedger LeadCreditLedger[]
+
+  @@unique([leadId, agentId])
+}
+
+model LeadAssignmentStatusHistory {
+  id          String   @id @default(cuid())
+  assignmentId String
+  assignment  LeadAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  oldStatus   String?
+  newStatus   String
+  changedBy   String
+  changedAt   DateTime @default(now())
+  reason      String?
+
+  @@index([assignmentId])
+  @@index([changedAt])
+}
+
+model LeadStatusHistory {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus String?
+  toStatus   String
+  note       String?
+  actorType  String   @default("SYSTEM") // ADMIN|AGENT|SYSTEM
+  actorLabel String?
+  createdAt  DateTime @default(now())
+}
+
+model LeadNote {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorType String   @default("ADMIN")
+  authorLabel String?
+  body       String
+  createdAt  DateTime @default(now())
+}
+
+model LeadPayment {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  amount    Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// CMS
+// ---------------------------------------------------------------------------
+
+model Destination {
+  id               String  @id @default(cuid())
+  name             String
+  slug             String  @unique
+  shortDescription String?
+  longDescription  String?
+  heroImage        String?
+  gallery          String? // JSON array of urls
+  startingPrice    Int?
+  bestTime         String?
+  tripTypes        String? // JSON array
+  highlights       String? // JSON array
+  faqs             String? // JSON array of {question, answer}
+  seoTitle         String?
+  seoDescription   String?
+  noindex          Boolean @default(false)
+  published        Boolean @default(false)
+  featured         Boolean @default(false)
+  sortOrder        Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  packages TourPackage[]
+  leads    Lead[]
+}
+
+model TourPackage {
+  id            String  @id @default(cuid())
+  kind          String  @default("PACKAGE") // PACKAGE | TOUR
+  title         String
+  slug          String  @unique
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  shortDescription String?
+  longDescription  String?
+  heroImage        String?
+
+  durationDays   Int?
+  durationNights Int?
+  durationText   String?
+
+  startingPrice Int?
+  offerPrice    Int?
+  currency      String  @default("INR")
+  priceLabel    String?
+
+  hotelCategory String?
+  accommodation String?
+  transport     String?
+  activities    String? // JSON array
+  tripType      String?
+  difficulty    String?
+
+  seoTitle       String?
+  seoDescription String?
+  noindex        Boolean @default(false)
+
+  published Boolean @default(false)
+  featured  Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images     PackageImage[]
+  itinerary  PackageItinerary[]
+  inclusions PackageInclusion[]
+  exclusions PackageExclusion[]
+  faqs       PackageFAQ[]
+  leads      Lead[]
+}
+
+model PackageImage {
+  id        String   @id @default(cuid())
+  packageId String
+  package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  isHero    Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model PackageItinerary {
+  id          String @id @default(cuid())
+  packageId   String
+  package     TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  day         Int
+  title       String
+  description String?
+  sortOrder   Int    @default(0)
+}
+
+model PackageInclusion {
+  id        String @id @default(cuid())
+  packageId String
+  package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  text      String
+  sortOrder Int    @default(0)
+}
+
+model PackageExclusion {
+  id        String @id @default(cuid())
+  packageId String
+  package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  text      String
+  sortOrder Int    @default(0)
+}
+
+model PackageFAQ {
+  id        String @id @default(cuid())
+  packageId String
+  package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  sortOrder Int    @default(0)
+}
+
+// ---------------------------------------------------------------------------
+// Media + settings
+// ---------------------------------------------------------------------------
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String   @unique // stored filename
+  originalName String
+  url          String
+  mimeType     String
+  size         Int
+  folder       String   @default("general")
+  createdAt    DateTime @default(now())
+}
+
+model SiteSetting {
+  id                 String @id @default("default")
+  brandName          String @default("Voyana")
+  tagline            String @default("Your trip. Your way.")
+  logoUrl            String?
+  faviconUrl         String?
+  phone              String?
+  whatsapp           String?
+  email              String?
+  address            String?
+  socials            String? // JSON
+  defaultLeadPrice   Int    @default(750)
+  leadMaxAgents      Int    @default(2)
+  leadExpiryHours    Int    @default(72)
+  footerText         String?
+  defaultSeoTitle    String?
+  defaultSeoDescription String?
+  gaId               String?
+  metaPixelId        String?
+  googleAdsId        String?
+  // feature flags (gradual rollout; ads hidden by default)
+  vendorAdsEnabled          Boolean @default(false)
+  autoBuyEnabled            Boolean @default(true)
+  supportEnabled            Boolean @default(true)
+  packageMarketplaceEnabled Boolean @default(false)
+  updatedAt          DateTime @updatedAt
+}
+
+model Campaign {
+  id          String @id @default(cuid())
+  name        String
+  source      String?
+  medium      String?
+  utmCampaign String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Integrations + audit
+// ---------------------------------------------------------------------------
+
+model IntegrationLog {
+  id          String   @id @default(cuid())
+  integration String   // google | meta | api | email | payment
+  event       String   // e.g. lead_ingest, webhook_verify
+  status      String   // SUCCESS | FAILED | DUPLICATE
+  leadId      String?
+  externalId  String?
+  message     String?
+  createdAt   DateTime @default(now())
+
+  @@index([integration])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorType  String   // ADMIN | AGENT | SYSTEM
+  actorId    String?
+  actorLabel String?
+  action     String   // lead.price, lead.status, lead.purchase, wallet.adjust, agent.status ...
+  entityType String   // lead | agent | wallet | integration | cms
+  entityId   String?
+  metadata   String?  // JSON
+  createdAt  DateTime @default(now())
+
+  @@index([entityType])
+  @@index([createdAt])
+}

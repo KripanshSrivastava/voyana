@@ -1,26 +1,202 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/*  Voyana design tokens                                               */
+/*  Deep navy • warm cream • teal • subtle orange CTA                  */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-navy-50: #f2f5fa;
+  --color-navy-100: #e2e8f2;
+  --color-navy-200: #c5d0e2;
+  --color-navy-300: #9aabc9;
+  --color-navy-400: #6a80a8;
+  --color-navy-500: #48608b;
+  --color-navy-600: #384c72;
+  --color-navy-700: #2e3d5c;
+  --color-navy-800: #26324b;
+  --color-navy-900: #0f1e38;
+  --color-navy-950: #091428;
+
+  --color-cream-50: #fdfbf7;
+  --color-cream-100: #faf5ec;
+  --color-cream-200: #f3e9d6;
+
+  --color-brand-50: #eefdfb;
+  --color-brand-100: #d3f7f2;
+  --color-brand-200: #abece6;
+  --color-brand-300: #72dcd4;
+  --color-brand-400: #35c2bd;
+  --color-brand-500: #14a6a3;
+  --color-brand-600: #0d8585;
+  --color-brand-700: #106a6b;
+  --color-brand-800: #135456;
+  --color-brand-900: #144648;
+
+  --color-sun-400: #fb9a3c;
+  --color-sun-500: #f97316;
+  --color-sun-600: #ea580c;
+
+  --font-sans: var(--font-sans-var), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: var(--font-display-var), "Georgia", "Times New Roman", serif;
+}
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f1e38;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Utility helpers ---------------------------------------------------- */
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+/* Cinematic navy hero with a soft teal aurora — GPU-cheap, no image needed. */
+.hero-gradient {
+  background:
+    radial-gradient(120% 90% at 85% -10%, rgba(20, 166, 163, 0.35) 0%, transparent 55%),
+    radial-gradient(90% 80% at 5% 110%, rgba(249, 115, 22, 0.18) 0%, transparent 50%),
+    linear-gradient(160deg, #0b1830 0%, #0f1e38 45%, #113f47 100%);
+}
+.hero-grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+.section-fade {
+  background: linear-gradient(180deg, #fdfbf7 0%, #ffffff 100%);
+}
+
+/* Thin, tidy scrollbars for admin tables */
+.scroll-slim::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: #c5d0e2;
+  border-radius: 9999px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+/* Staggered hero entrance ------------------------------------------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { opacity: 0; animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.15s; }
+.rise-3 { animation-delay: 0.25s; }
+.rise-4 { animation-delay: 0.35s; }
+.rise-5 { animation-delay: 0.45s; }
+
+/* Scroll reveal (driven by IntersectionObserver adding .is-visible) --- */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+/* If scripting is unavailable, never hide reveal content. */
+@media (scripting: none) {
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* Slow cinematic zoom for hero imagery */
+@keyframes ken-burns {
+  from { transform: scale(1.05); }
+  to { transform: scale(1.14); }
+}
+.ken-burns { animation: ken-burns 18s ease-out both alternate infinite; }
+
+/* Animated underline for text links */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s ease;
+}
+.link-underline:hover { background-size: 100% 1.5px; }
+
+/* Button press feedback */
+.press:active { transform: translateY(1px) scale(0.99); }
+
+/* Subtle shake for form validation errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.4s ease-in-out; }
+
+/* Safe-area padding for the mobile sticky CTA */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Shimmer for skeletons */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #eef1f7;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* Respect the user's reduced-motion preference everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+  .ken-burns { animation: none; }
 }
