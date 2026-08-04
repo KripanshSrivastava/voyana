@@ -8,6 +8,7 @@ import { logAudit } from "../audit";
 import { sendEmail } from "../email/mailer";
 import { customerLeadReceived, adminNewLead } from "../email/templates";
 import { runLeadAlerts } from "./alerts";
+import { runAutoBuyForLead } from "./autobuy";
 
 export type IngestAttribution = {
   utmSource?: string | null; utmMedium?: string | null; utmCampaign?: string | null;
@@ -109,6 +110,16 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
     if (pkg) { packageSnapshotName = pkg.title; packageSnapshotPrice = pkg.offerPrice ?? pkg.startingPrice ?? null; }
   }
 
+  // Category classification (DOMESTIC | INTERNATIONAL | INBOUND) is curated
+  // per-destination by admins (Destination.category), not guessable from
+  // free text — carry it onto the lead so category-based alert/auto-buy
+  // rules can match leads at ingestion time, not only after manual admin edit.
+  let tripCategory: string | null = null;
+  if (input.destinationId) {
+    const destination = await prisma.destination.findUnique({ where: { id: input.destinationId }, select: { category: true } });
+    tripCategory = destination?.category ?? null;
+  }
+
   const a = input.attribution ?? {};
   const expiresAt = new Date(Date.now() + settings.leadExpiryHours * 60 * 60 * 1000);
   const status = input.status ?? "NEW";
@@ -136,7 +147,8 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
           status,
           quality,
           qualityScore: score,
-          price: input.initialPrice ?? null,
+          price: input.initialPrice ?? settings.defaultLeadPrice,
+          tripCategory,
           isDuplicate: Boolean(dupe),
           duplicateOfId: dupe?.id ?? null,
           maxAgents: settings.leadMaxAgents,
@@ -208,6 +220,11 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
 
   // Fan out lead alerts to matching agents (best-effort, non-blocking).
   await runLeadAlerts(created.id);
+
+  // A freshly-priced lead is immediately purchasable — give auto-buy-enabled
+  // agents first shot at it (best-effort, non-blocking; mirrors the same call
+  // the admin panel makes when it manually prices/publishes a lead).
+  await runAutoBuyForLead(created.id);
 
   return { lead: created, duplicate: Boolean(dupe), alreadyExisted: false };
 }

@@ -8,6 +8,7 @@ import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email/mailer";
 import { agentApproved } from "@/lib/email/templates";
 import { titleCase } from "@/lib/utils";
+import { revalidateVendors } from "@/lib/cache/revalidate";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -37,6 +38,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
         verifiedBy: verified ? session.uid : null,
       },
     });
+    revalidateVendors();
     await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "agent.verify", entityType: "agent", entityId: id, metadata: { from: agent.verificationStatus, to: vStatus } });
     await notify({
       userId: agent.userId,
@@ -53,6 +55,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
   if (!AGENT_STATUSES.includes(status)) return fail("Invalid status.", 422);
 
   await prisma.agent.update({ where: { id }, data: { status } });
+  revalidateVendors();
   await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "agent.status", entityType: "agent", entityId: id, metadata: { from: agent.status, to: status } });
   await notify({ userId: agent.userId, type: "system", title: `Account ${titleCase(status)}`, href: "/agent/dashboard" });
 

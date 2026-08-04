@@ -24,9 +24,6 @@ export type AvailableLeadFilters = {
   clientLocation?: string | null;
   category?: string | null;
   tripType?: string | null;
-  quality?: string | null;
-  minBudget?: number | null;
-  maxBudget?: number | null;
   minTravelers?: number | null;
   maxTravelers?: number | null;
   travelDateFrom?: string | null;
@@ -83,9 +80,6 @@ function buildAvailableWhere(agentId: string, filters: AvailableLeadFilters): Pr
 
   if (cleanText(filters.category)) and.push({ tripCategory: cleanText(filters.category) ?? undefined });
   if (cleanText(filters.tripType)) and.push({ tripType: containsInsensitive(cleanText(filters.tripType)!) });
-  if (cleanText(filters.quality)) and.push({ quality: cleanText(filters.quality) ?? undefined });
-  if (filters.minBudget != null) and.push({ budget: { gte: filters.minBudget } });
-  if (filters.maxBudget != null) and.push({ budget: { lte: filters.maxBudget } });
   if (filters.minTravelers != null) and.push({ travelers: { gte: filters.minTravelers } });
   if (filters.maxTravelers != null) and.push({ travelers: { lte: filters.maxTravelers } });
   if (filters.travelDateFrom || filters.travelDateTo) {

@@ -27,6 +27,7 @@ function toData(s: ReturnType<typeof settingsSchema.parse>) {
     brandName: s.brandName,
     tagline: s.tagline || "",
     logoUrl: s.logoUrl || null,
+    heroImage: s.heroImage || null,
     faviconUrl: s.faviconUrl || null,
     phone: s.phone || null,
     whatsapp: s.whatsapp || null,

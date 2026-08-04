@@ -6,7 +6,8 @@ import { Loader2, Save } from "lucide-react";
 import { Input, Textarea, Field, Button, Card } from "@/components/ui";
 import { SingleImage, GalleryImages } from "@/components/admin/ImageUploader";
 import { StringListEditor, FaqListEditor, type FaqItem } from "@/components/admin/ListEditors";
-import { slugify } from "@/lib/utils";
+import { slugify, titleCase } from "@/lib/utils";
+import { TRIP_CATEGORIES } from "@/lib/constants";
 
 export type DestinationFormValue = {
   name: string;
@@ -22,6 +23,7 @@ export type DestinationFormValue = {
   faqs: FaqItem[];
   seoTitle: string;
   seoDescription: string;
+  category: string;
   noindex: boolean;
   published: boolean;
   featured: boolean;
@@ -31,7 +33,7 @@ export type DestinationFormValue = {
 export const emptyDestination: DestinationFormValue = {
   name: "", slug: "", shortDescription: "", longDescription: "", heroImage: "", gallery: [],
   startingPrice: "", bestTime: "", tripTypes: [], highlights: [], faqs: [],
-  seoTitle: "", seoDescription: "", noindex: false, published: false, featured: false, sortOrder: "0",
+  seoTitle: "", seoDescription: "", category: "", noindex: false, published: false, featured: false, sortOrder: "0",
 };
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
@@ -60,6 +62,7 @@ export function DestinationEditor({ id, initial }: { id?: string; initial?: Dest
         slug: f.slug || slugify(f.name),
         startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
         sortOrder: Number(f.sortOrder) || 0,
+        category: f.category || null,
         published: publishNow ?? f.published,
       };
       const res = await fetch(id ? `/api/admin/destinations/${id}` : "/api/admin/destinations", {
@@ -106,6 +109,18 @@ export function DestinationEditor({ id, initial }: { id?: string; initial?: Dest
 
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-navy-900">Details</h2>
+          <Field label="Category" hint="Classifies leads captured for this destination, so agents' category-based alert and auto-buy rules can match them.">
+            <select
+              value={f.category}
+              onChange={(e) => set("category", e.target.value)}
+              className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm text-navy-900"
+            >
+              <option value="">Unclassified</option>
+              {TRIP_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{titleCase(c)}</option>
+              ))}
+            </select>
+          </Field>
           <StringListEditor label="Highlights" items={f.highlights} onChange={(v) => set("highlights", v)} placeholder="e.g. Shikara ride on Dal Lake" />
           <StringListEditor label="Popular trip types" items={f.tripTypes} onChange={(v) => set("tripTypes", v)} placeholder="e.g. Honeymoon" />
           <FaqListEditor items={f.faqs} onChange={(v) => set("faqs", v)} />

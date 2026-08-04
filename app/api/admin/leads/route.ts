@@ -7,6 +7,7 @@ import { scoreLead } from "@/lib/leads/scoring";
 import { generateLeadCode } from "@/lib/leads/code";
 import { getSiteSettings } from "@/lib/settings";
 import { LEAD_STATUSES } from "@/lib/constants";
+import { runAutoBuyForLead } from "@/lib/leads/autobuy";
 
 /** Admin manually creates a lead (walk-in / phone-in). */
 export const POST = handler(async (req: Request) => {
@@ -18,6 +19,9 @@ export const POST = handler(async (req: Request) => {
   const requirements = d.requirements ?? [];
   const travelDate = d.travelDate ? new Date(d.travelDate) : null;
   const status = d.status && (LEAD_STATUSES as readonly string[]).includes(d.status) ? d.status : "QUALIFIED";
+  const tripCategory = d.destinationId
+    ? (await prisma.destination.findUnique({ where: { id: d.destinationId }, select: { category: true } }))?.category ?? null
+    : null;
 
   const { score, quality } = scoreLead({
     phone: d.phone,
@@ -53,7 +57,8 @@ export const POST = handler(async (req: Request) => {
           status,
           quality,
           qualityScore: score,
-          price: d.price ?? null,
+          price: d.price ?? settings.defaultLeadPrice,
+          tripCategory,
           maxAgents: settings.leadMaxAgents,
           expiresAt,
           destinationId: d.destinationId || null,
@@ -64,6 +69,7 @@ export const POST = handler(async (req: Request) => {
         },
         select: { id: true, code: true },
       });
+      await runAutoBuyForLead(lead.id);
       return ok(lead);
     } catch {
       if (attempt === 3) return fail("Could not create lead. Please try again.", 500);

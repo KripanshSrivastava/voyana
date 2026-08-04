@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Check, Bell, Zap } from "lucide-react";
-import { Input, Field, Select, Button, Card } from "@/components/ui";
-import { TRIP_CATEGORIES, LEAD_QUALITIES } from "@/lib/constants";
+import { Input, Field, Button, Card } from "@/components/ui";
+import { TRIP_CATEGORIES } from "@/lib/constants";
 import { cn, titleCase } from "@/lib/utils";
 
 export type PrefValue = {
   alertEmail: boolean; alertInApp: boolean; alertCategories: string[]; alertDestinations: string;
-  alertMinQuality: string; alertMinBudget: string;
   autoBuyEnabled: boolean; autoBuyCategories: string[]; autoBuyDestinations: string; autoBuyClientLocations: string;
-  autoBuyMinQuality: string; autoBuyMaxPrice: string; autoBuyDailyLimit: string; autoBuyMonthlyBudget: string;
 };
 
 function CategoryChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
@@ -45,12 +43,9 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           alertEmail: f.alertEmail, alertInApp: f.alertInApp, alertCategories: f.alertCategories,
-          alertDestinations: toList(f.alertDestinations), alertMinQuality: f.alertMinQuality || null,
-          alertMinBudget: f.alertMinBudget || null,
+          alertDestinations: toList(f.alertDestinations),
           autoBuyEnabled: f.autoBuyEnabled, autoBuyCategories: f.autoBuyCategories,
           autoBuyDestinations: toList(f.autoBuyDestinations), autoBuyClientLocations: toList(f.autoBuyClientLocations),
-          autoBuyMinQuality: f.autoBuyMinQuality || null, autoBuyMaxPrice: f.autoBuyMaxPrice || null,
-          autoBuyDailyLimit: f.autoBuyDailyLimit || null, autoBuyMonthlyBudget: f.autoBuyMonthlyBudget || null,
         }),
       });
       const json = await res.json();
@@ -60,8 +55,6 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
       setError(e instanceof Error ? e.message : "Save failed");
     } finally { setBusy(false); }
   }
-
-  const qualityOpts = LEAD_QUALITIES.filter((q) => q !== "UNREVIEWED");
 
   return (
     <div className="space-y-6">
@@ -73,11 +66,7 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.alertEmail} onChange={(e) => set("alertEmail", e.target.checked)} /> Email</label>
         </div>
         <Field label="Categories"><CategoryChips value={f.alertCategories} onChange={(v) => set("alertCategories", v)} /></Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Destinations (comma-separated)"><Input value={f.alertDestinations} onChange={(e) => set("alertDestinations", e.target.value)} placeholder="Kashmir, Goa, Dubai" /></Field>
-          <Field label="Minimum quality"><Select value={f.alertMinQuality} onChange={(e) => set("alertMinQuality", e.target.value)}><option value="">Any</option>{qualityOpts.map((q) => <option key={q} value={q}>{titleCase(q)}</option>)}</Select></Field>
-          <Field label="Minimum budget (₹)"><Input type="number" value={f.alertMinBudget} onChange={(e) => set("alertMinBudget", e.target.value)} /></Field>
-        </div>
+        <Field label="Destinations (comma-separated)"><Input value={f.alertDestinations} onChange={(e) => set("alertDestinations", e.target.value)} placeholder="Kashmir, Goa, Dubai" /></Field>
       </Card>
 
       <Card className={cn("p-6 space-y-4", !autoBuyAllowed && "opacity-60")}>
@@ -89,15 +78,11 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
           </label>
         </div>
         {!autoBuyAllowed && <p className="text-sm text-amber-600">Auto-buy is currently disabled by the Voyana team.</p>}
-        <p className="text-sm text-navy-500">Automatically purchase matching leads the moment they become available. Only verified, approved accounts with sufficient balance auto-buy, and never more than your limits.</p>
+        <p className="text-sm text-navy-500">Automatically purchase matching leads the moment they become available, using your Lead Credits. Only verified, approved accounts with at least 1 Lead Credit auto-buy.</p>
         <Field label="Categories"><CategoryChips value={f.autoBuyCategories} onChange={(v) => set("autoBuyCategories", v)} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Destinations (comma-separated)"><Input value={f.autoBuyDestinations} onChange={(e) => set("autoBuyDestinations", e.target.value)} placeholder="Kashmir, Manali" /></Field>
           <Field label="Client locations (comma-separated)"><Input value={f.autoBuyClientLocations} onChange={(e) => set("autoBuyClientLocations", e.target.value)} placeholder="Delhi, Mumbai" /></Field>
-          <Field label="Minimum quality"><Select value={f.autoBuyMinQuality} onChange={(e) => set("autoBuyMinQuality", e.target.value)}><option value="">Any</option>{qualityOpts.map((q) => <option key={q} value={q}>{titleCase(q)}</option>)}</Select></Field>
-          <Field label="Max price per lead (₹)"><Input type="number" value={f.autoBuyMaxPrice} onChange={(e) => set("autoBuyMaxPrice", e.target.value)} /></Field>
-          <Field label="Daily purchase limit"><Input type="number" value={f.autoBuyDailyLimit} onChange={(e) => set("autoBuyDailyLimit", e.target.value)} /></Field>
-          <Field label="Monthly budget (₹)"><Input type="number" value={f.autoBuyMonthlyBudget} onChange={(e) => set("autoBuyMonthlyBudget", e.target.value)} /></Field>
         </div>
       </Card>
 

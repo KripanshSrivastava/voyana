@@ -87,6 +87,47 @@ export function walletCredited(p: { agentName: string; amount: number; balance: 
   };
 }
 
+function codeBlock(code: string): string {
+  return `<div style="margin:20px 0;text-align:center">
+    <span style="display:inline-block;background:#f2f5fa;border-radius:10px;padding:14px 28px;font-size:32px;font-weight:700;letter-spacing:8px;color:#0f1e38">${code}</span>
+  </div>`;
+}
+
+export function verifyEmailCode(p: { name: string; code: string }) {
+  const minutes = Number(process.env.EMAIL_VERIFICATION_EXPIRES_MINUTES) || 15;
+  return {
+    subject: "Verify your Voyana account",
+    html: shell("Welcome to Voyana", `
+      <p>Hi ${escapeHtml(p.name)},</p>
+      <p>Verify your email address to activate your agent account.</p>
+      ${codeBlock(p.code)}
+      <p style="color:#48608b;font-size:14px">Enter this code on the verification screen. It expires in ${minutes} minutes.</p>
+      <p style="color:#9aabc9;font-size:12px">If you didn't create a Voyana account, you can safely ignore this email.</p>`),
+  };
+}
+
+export function twoFactorCode(p: { name: string; code: string }) {
+  return {
+    subject: "Your Voyana security code",
+    html: shell("Your security code", `
+      <p>Hi ${escapeHtml(p.name)},</p>
+      <p>Use this code to finish signing in to Voyana.</p>
+      ${codeBlock(p.code)}
+      <p style="color:#48608b;font-size:14px">This code expires in 10 minutes and can only be used once.</p>
+      <p style="color:#9aabc9;font-size:12px">If you didn't try to sign in, change your password immediately.</p>`),
+  };
+}
+
+export function securitySettingsChanged(p: { name: string; change: string }) {
+  return {
+    subject: "Your Voyana account security settings changed",
+    html: shell("Security settings changed", `
+      <p>Hi ${escapeHtml(p.name)},</p>
+      <p>${escapeHtml(p.change)}</p>
+      <p style="color:#48608b;font-size:14px">If this wasn't you, please contact support and change your password immediately.</p>`),
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

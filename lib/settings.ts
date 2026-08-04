@@ -1,4 +1,4 @@
-import { prisma } from "./db";
+import { prisma, withReadRetry } from "./db";
 import { parseJson } from "./utils";
 import { cached } from "./cache/publicCache";
 
@@ -12,21 +12,23 @@ export type Socials = { facebook?: string; instagram?: string; twitter?: string;
  * used purely for public marketing chrome, is cached.
  */
 export async function getSiteSettings() {
-  const existing = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-  if (existing) return existing;
-  try {
-    return await prisma.siteSetting.upsert({
-      where: { id: "default" },
-      create: { id: "default" },
-      update: {},
-    });
-  } catch {
-    // Concurrent first-access (layout + page render in parallel on Postgres) can
-    // race two INSERTs — one wins, the other hits a unique violation. Re-read.
-    const row = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    if (row) return row;
-    throw new Error("Failed to initialise site settings");
-  }
+  return withReadRetry(async () => {
+    const existing = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    if (existing) return existing;
+    try {
+      return await prisma.siteSetting.upsert({
+        where: { id: "default" },
+        create: { id: "default" },
+        update: {},
+      });
+    } catch {
+      // Concurrent first-access (layout + page render in parallel on Postgres) can
+      // race two INSERTs — one wins, the other hits a unique violation. Re-read.
+      const row = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+      if (row) return row;
+      throw new Error("Failed to initialise site settings");
+    }
+  });
 }
 
 export async function getPublicSettings() {
@@ -36,6 +38,8 @@ export async function getPublicSettings() {
       brandName: s.brandName,
       tagline: s.tagline,
       logoUrl: s.logoUrl,
+      faviconUrl: s.faviconUrl,
+      heroImage: s.heroImage,
       phone: s.phone,
       whatsapp: s.whatsapp,
       email: s.email,

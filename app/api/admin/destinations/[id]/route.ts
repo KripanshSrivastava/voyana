@@ -49,6 +49,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
       faqs: JSON.stringify(d.faqs ?? []),
       seoTitle: d.seoTitle || null,
       seoDescription: d.seoDescription || null,
+      category: d.category || null,
       noindex: d.noindex,
       published: d.published,
       featured: d.featured,

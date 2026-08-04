@@ -37,6 +37,25 @@ type PackageItem = {
   images?: { url: string; isHero: boolean }[];
 };
 
+type Vendor = {
+  id: string;
+  companyName: string;
+  city?: string | null;
+  state?: string | null;
+  website?: string | null;
+  profileImage?: string | null;
+};
+
+type VendorAdItem = {
+  id: string;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  landingUrl?: string | null;
+  destination?: string | null;
+  vendorName: string;
+};
+
 type ModalState = {
   open: boolean;
   destination?: string;
@@ -48,11 +67,15 @@ export function LandingLeadExperience({
   packages,
   tours,
   heroImage,
+  vendors = [],
+  vendorAds = [],
 }: {
   destinations: Destination[];
   packages: PackageItem[];
   tours: PackageItem[];
   heroImage?: string | null;
+  vendors?: Vendor[];
+  vendorAds?: VendorAdItem[];
 }) {
   const [modal, setModal] = useState<ModalState>({ open: false, nonce: 0 });
   const destinationNames = useMemo(() => {
@@ -171,7 +194,7 @@ export function LandingLeadExperience({
           <div className="absolute inset-0 -z-10 hero-gradient">
             {bannerImage ? (
               <>
-                <CmsImage src={bannerImage} alt="" sizes="100vw" className="h-full w-full" imgClassName="ken-burns opacity-45" />
+                <CmsImage src={bannerImage} alt="" sizes="(max-width: 640px) 100vw, min(100vw, 1280px)" className="h-full w-full" imgClassName="ken-burns opacity-45" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy-950/85 via-navy-950/45 to-navy-950/70" />
               </>
             ) : (
@@ -216,6 +239,57 @@ export function LandingLeadExperience({
             {[...packages, ...tours].map((p, i) => (
               <Reveal key={p.id} delay={(i % 3) * 90}>
                 <PackageLeadCard p={p} onSelect={openLeadModal} />
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {vendorAds.length > 0 && (
+        <Section title="Featured offers from our partners" subtitle="Promoted by verified travel partners on Voyana.">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {vendorAds.map((ad, i) => (
+              <Reveal key={ad.id} delay={(i % 3) * 90}>
+                <a
+                  href={ad.landingUrl || "#"}
+                  target={ad.landingUrl ? "_blank" : undefined}
+                  rel={ad.landingUrl ? "noopener noreferrer sponsored" : undefined}
+                  onClick={(e) => { if (!ad.landingUrl) { e.preventDefault(); openLeadModal(ad.destination ?? undefined); } }}
+                  className="group flex flex-col overflow-hidden rounded-3xl border border-navy-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <CmsImage src={ad.imageUrl} alt={ad.title} placeholderLabel={ad.title} sizes={CARD_SIZES} className="h-44 w-full" />
+                  <div className="flex flex-1 flex-col p-5">
+                    <span className="text-xs font-medium uppercase tracking-wide text-brand-600">Sponsored · {ad.vendorName}</span>
+                    <h3 className="mt-1 font-display text-lg font-semibold text-navy-900">{ad.title}</h3>
+                    {ad.description && <p className="mt-1 line-clamp-2 text-sm text-navy-500">{ad.description}</p>}
+                  </div>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {vendors.length > 0 && (
+        <Section title="Our verified travel partners" subtitle="Real travel businesses, vetted and approved by the Voyana team.">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {vendors.map((v, i) => (
+              <Reveal key={v.id} delay={(i % 3) * 90} className="flex items-center gap-4 rounded-3xl border border-navy-100 bg-white p-5 shadow-sm">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-navy-50 text-lg font-bold text-navy-700">
+                  {v.profileImage ? (
+                    <CmsImage src={v.profileImage} alt={v.companyName} className="h-full w-full" />
+                  ) : (
+                    v.companyName.charAt(0).toUpperCase()
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 font-semibold text-navy-900">
+                    {v.companyName}
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-brand-600" aria-label="Verified partner" />
+                  </div>
+                  <p className="truncate text-sm text-navy-500">{[v.city, v.state].filter(Boolean).join(", ") || "Verified partner"}</p>
+                  {v.website && <a href={v.website} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-600 hover:underline">Visit website</a>}
+                </div>
               </Reveal>
             ))}
           </div>
@@ -270,7 +344,7 @@ export function LandingLeadExperience({
           <div className="absolute inset-0 -z-10 hero-gradient">
             {bannerImage ? (
               <>
-                <CmsImage src={bannerImage} alt="" sizes="100vw" className="h-full w-full" imgClassName="ken-burns opacity-45" />
+                <CmsImage src={bannerImage} alt="" sizes="(max-width: 640px) 100vw, min(100vw, 1280px)" className="h-full w-full" imgClassName="ken-burns opacity-45" />
                 <div className="absolute inset-0 bg-gradient-to-br from-navy-950/85 via-navy-900/70 to-brand-900/70" />
               </>
             ) : (
@@ -313,7 +387,7 @@ function DestinationLeadCard({ d, big, priority, onSelect }: { d: Destination; b
         big ? "h-[26rem] sm:h-[30rem]" : "h-72"
       )}
     >
-      <CmsImage src={d.heroImage} alt={d.name} placeholderLabel={d.name} priority={priority} sizes={big ? "100vw" : CARD_SIZES} className="h-full w-full" imgClassName="transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]" />
+      <CmsImage src={d.heroImage} alt={d.name} placeholderLabel={d.name} priority={priority} sizes={big ? "(max-width: 640px) 100vw, min(100vw, 1280px)" : CARD_SIZES} className="h-full w-full" imgClassName="transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-5 text-white transition-transform duration-300 group-hover:-translate-y-1 sm:p-6">
         <div className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-white/70">

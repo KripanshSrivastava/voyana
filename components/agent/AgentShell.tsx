@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, ShoppingBag, Briefcase, Wallet, User, LogOut, Menu, X, Plane, AlertTriangle, Bell, Settings, BadgeCheck, SlidersHorizontal, LifeBuoy, Megaphone, FilePlus2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { broadcastAuthChange } from "@/lib/auth/broadcast";
+import { AuthSync } from "@/components/auth/AuthSync";
+import { NotificationBadge } from "@/components/agent/NotificationBadge";
 
 const BASE_NAV = [
   { href: "/agent/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,6 +32,8 @@ export function AgentShell({
   unread = 0,
   adsEnabled = false,
   submissionsEnabled = false,
+  brandName,
+  logoUrl,
   children,
 }: {
   name: string;
@@ -39,6 +44,8 @@ export function AgentShell({
   unread?: number;
   adsEnabled?: boolean;
   submissionsEnabled?: boolean;
+  brandName: string;
+  logoUrl?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -48,6 +55,7 @@ export function AgentShell({
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    broadcastAuthChange();
     router.push("/agent/login");
     router.refresh();
   }
@@ -67,9 +75,7 @@ export function AgentShell({
             )}
           >
             <it.icon className="h-4.5 w-4.5" /> {it.label}
-            {it.href === "/agent/notifications" && unread > 0 && (
-              <span className="ml-auto rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>
-            )}
+            {it.href === "/agent/notifications" && <NotificationBadge initial={unread} />}
           </Link>
         );
       })}
@@ -78,10 +84,16 @@ export function AgentShell({
 
   return (
     <div className="min-h-screen bg-navy-50">
+      <AuthSync />
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-navy-950 lg:flex">
         <div className="flex h-16 items-center gap-2 px-5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><Plane className="h-5 w-5 -rotate-45 text-brand-300" /></span>
-          <span className="text-lg font-bold text-white">Voyana</span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={brandName} className="h-8 w-auto" />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><Plane className="h-5 w-5 -rotate-45 text-brand-300" /></span>
+          )}
+          <span className="text-lg font-bold text-white">{brandName}</span>
           <span className="ml-1 rounded bg-brand-600/30 px-1.5 py-0.5 text-[10px] font-semibold text-brand-200">AGENT</span>
         </div>
         <div className="mx-3 mb-2 rounded-xl bg-white/5 p-3">
@@ -101,7 +113,7 @@ export function AgentShell({
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-navy-950">
             <div className="flex h-16 items-center justify-between px-5">
-              <span className="text-lg font-bold text-white">Voyana</span>
+              <span className="text-lg font-bold text-white">{brandName}</span>
               <button onClick={() => setOpen(false)} className="text-white"><X className="h-5 w-5" /></button>
             </div>
             {nav}

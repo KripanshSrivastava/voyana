@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, Briefcase } from "lucide-react";
+import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default function LoginChooser() {
+export default async function LoginChooser() {
+  const settings = await getPublicSettings();
   return (
     <div className="mx-auto max-w-2xl px-4 py-20 sm:px-6 lg:px-8">
-      <h1 className="text-center font-display text-3xl font-bold text-navy-900">Sign in to Voyana</h1>
+      <h1 className="text-center font-display text-3xl font-bold text-navy-900">Sign in to {settings.brandName}</h1>
       <p className="mt-2 text-center text-navy-500">Choose how you&apos;d like to continue.</p>
       <div className="mt-10 grid gap-5 sm:grid-cols-2">
         <Link href="/agent/login" className="group rounded-2xl border border-navy-100 bg-white p-8 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg">

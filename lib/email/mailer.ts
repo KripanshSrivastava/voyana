@@ -13,8 +13,18 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
-export async function sendEmail(email: Email): Promise<{ ok: boolean; skipped?: boolean }> {
+/** Composes the From header: EMAIL_FROM as-is if it already has a display
+ *  name ("Name <email>"), otherwise prefixes EMAIL_FROM_NAME onto a bare address. */
+function fromHeader(): string | undefined {
   const from = process.env.EMAIL_FROM;
+  if (!from) return undefined;
+  if (from.includes("<")) return from;
+  const name = process.env.EMAIL_FROM_NAME;
+  return name ? `${name} <${from}>` : from;
+}
+
+export async function sendEmail(email: Email): Promise<{ ok: boolean; skipped?: boolean }> {
+  const from = fromHeader();
   const key = process.env.RESEND_API_KEY;
 
   if (!key || !from) {

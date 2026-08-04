@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Input, Textarea, Select, Field, Button, Card } from "@/components/ui";
+import { SingleImage } from "@/components/admin/ImageUploader";
 
 export function SubmissionForm({ destinations }: { destinations: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -15,6 +16,7 @@ export function SubmissionForm({ destinations }: { destinations: { id: string; n
   const [kind, setKind] = useState<"PACKAGE" | "TOUR">("PACKAGE");
   const [durationDays, setDurationDays] = useState("");
   const [durationNights, setDurationNights] = useState("");
+  const [heroImage, setHeroImage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,14 +26,14 @@ export function SubmissionForm({ destinations }: { destinations: { id: string; n
     setError(null);
     try {
       const body = type === "destination"
-        ? { name, shortDescription, longDescription }
-        : { title: name, shortDescription, longDescription, destinationId: destinationId || null, kind, durationDays: durationDays ? Number(durationDays) : null, durationNights: durationNights ? Number(durationNights) : null };
+        ? { name, shortDescription, longDescription, heroImage }
+        : { title: name, shortDescription, longDescription, destinationId: destinationId || null, kind, durationDays: durationDays ? Number(durationDays) : null, durationNights: durationNights ? Number(durationNights) : null, heroImage };
       const res = await fetch(`/api/agent/${type === "destination" ? "destinations" : "packages"}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Could not create submission.");
-      setName(""); setShortDescription(""); setLongDescription(""); setDestinationId(""); setDurationDays(""); setDurationNights("");
+      setName(""); setShortDescription(""); setLongDescription(""); setDestinationId(""); setDurationDays(""); setDurationNights(""); setHeroImage("");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create submission.");
@@ -75,6 +77,7 @@ export function SubmissionForm({ destinations }: { destinations: { id: string; n
         )}
         <Field label="Short description"><Input value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} maxLength={400} /></Field>
         <Field label="Full description"><Textarea rows={4} value={longDescription} onChange={(e) => setLongDescription(e.target.value)} /></Field>
+        <SingleImage value={heroImage} onChange={setHeroImage} folder="vendor-submissions" label="Image" endpoint="/api/agent/media" />
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <Button type="submit" variant="brand" disabled={busy || !name.trim()}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save as draft"}

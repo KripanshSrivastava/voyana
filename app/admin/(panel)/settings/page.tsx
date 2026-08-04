@@ -14,7 +14,7 @@ export default async function SettingsPage() {
     packageMarketplaceEnabled: s.packageMarketplaceEnabled,
   };
   const initial: SettingsValue = {
-    brandName: s.brandName, tagline: s.tagline, logoUrl: s.logoUrl ?? "",
+    brandName: s.brandName, tagline: s.tagline, logoUrl: s.logoUrl ?? "", faviconUrl: s.faviconUrl ?? "", heroImage: s.heroImage ?? "",
     phone: s.phone ?? "", whatsapp: s.whatsapp ?? "", email: s.email ?? "", address: s.address ?? "",
     facebook: socials.facebook ?? "", instagram: socials.instagram ?? "", twitter: socials.twitter ?? "", youtube: socials.youtube ?? "",
     defaultLeadPrice: String(s.defaultLeadPrice), leadMaxAgents: String(s.leadMaxAgents), leadExpiryHours: String(s.leadExpiryHours),

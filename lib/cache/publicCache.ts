@@ -1,5 +1,6 @@
 import "server-only";
 import { getRedis } from "./redis";
+import { withReadRetry } from "../db";
 
 const PREFIX = "voyana:public:";
 
@@ -16,7 +17,7 @@ const PREFIX = "voyana:public:";
  */
 export async function cached<T>(key: string, ttlSeconds: number, fetcher: () => Promise<T>): Promise<T> {
   const redis = getRedis();
-  if (!redis) return fetcher();
+  if (!redis) return withReadRetry(fetcher);
 
   try {
     const hit = await redis.get<T>(PREFIX + key);
@@ -25,7 +26,7 @@ export async function cached<T>(key: string, ttlSeconds: number, fetcher: () => 
     console.error("[cache] read failed, falling back to DB:", e);
   }
 
-  const fresh = await fetcher();
+  const fresh = await withReadRetry(fetcher);
   try {
     await redis.set(PREFIX + key, fresh, { ex: ttlSeconds });
   } catch (e) {

@@ -37,6 +37,7 @@ export const POST = handler(async (req: Request) => {
       bestTime: d.bestTime || null,
       tripTypes: JSON.stringify(d.tripTypes ?? []),
       highlights: JSON.stringify(d.highlights ?? []),
+      heroImage: d.heroImage || null,
       published: false,
       submittedByAgentId: session.agentId,
       moderationStatus: "DRAFT",

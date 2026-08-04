@@ -23,8 +23,21 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
     return fail("This submission is already under review or approved and can no longer be edited.", 409);
   }
 
-  const d = vendorDestinationSubmissionSchema.parse(body.details ?? body);
   const submitForReview = body.action === "submit";
+
+  // "Submit for review" alone (no edited fields) must not re-validate/require
+  // the full form — the content was already valid when the draft was created
+  // or last saved. Only re-validate when the agent actually edited fields.
+  if (submitForReview && !body.details) {
+    if (!existing.name || existing.name.trim().length < 2) {
+      return fail("Add a name before submitting for review.", 422);
+    }
+    await prisma.destination.update({ where: { id }, data: { moderationStatus: "PENDING_REVIEW", rejectionReason: null } });
+    await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "destination.submit_for_review", entityType: "cms", entityId: id });
+    return ok({ id, status: "PENDING_REVIEW" });
+  }
+
+  const d = vendorDestinationSubmissionSchema.parse(body.details ?? body);
 
   await prisma.destination.update({
     where: { id },
@@ -35,6 +48,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
       bestTime: d.bestTime || null,
       tripTypes: JSON.stringify(d.tripTypes ?? []),
       highlights: JSON.stringify(d.highlights ?? []),
+      heroImage: d.heroImage || null,
       ...(submitForReview ? { moderationStatus: "PENDING_REVIEW", rejectionReason: null } : {}),
     },
   });

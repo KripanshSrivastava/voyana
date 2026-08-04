@@ -1,18 +1,45 @@
 import { LandingLeadExperience } from "@/components/site/LandingLeadExperience";
-import { getFeaturedDestinations, getFeaturedPackages } from "@/lib/cms/queries";
+import { getFeaturedDestinations, getFeaturedPackages, getPublicVendors, getPublicVendorAds } from "@/lib/cms/queries";
+import { getPublicSettings } from "@/lib/settings";
+import { getFlags } from "@/lib/flags";
 
 export default async function HomePage() {
-  const [destinations, packages, tours] = await Promise.all([
+  const [destinations, packages, tours, settings, vendors, flags] = await Promise.all([
     getFeaturedDestinations(6),
     getFeaturedPackages("PACKAGE", 6),
     getFeaturedPackages("TOUR", 3),
+    getPublicSettings(),
+    getPublicVendors(6),
+    getFlags(),
   ]);
+  // vendorAdsEnabled is a site-wide toggle, not a per-ad filter — only query
+  // ads at all when the flag is on, so a disabled flag hides them completely.
+  const vendorAds = flags.vendorAdsEnabled ? await getPublicVendorAds(6) : [];
 
-  const heroImage = destinations.find((d) => d.heroImage)?.heroImage ?? null;
+  // The landing hero is an EXPLICIT admin setting — never inferred from a
+  // destination's photo. Uploading a Kashmir image must never change this.
+  const heroImage = settings.heroImage ?? null;
 
   return (
     <LandingLeadExperience
       heroImage={heroImage}
+      vendors={vendors.map((v) => ({
+        id: v.id,
+        companyName: v.companyName,
+        city: v.city,
+        state: v.state,
+        website: v.website,
+        profileImage: v.profileImage,
+      }))}
+      vendorAds={vendorAds.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        imageUrl: a.imageUrl,
+        landingUrl: a.landingUrl,
+        destination: a.destination,
+        vendorName: a.agent.companyName,
+      }))}
       destinations={destinations.map((d) => ({
         id: d.id,
         name: d.name,

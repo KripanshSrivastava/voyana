@@ -34,3 +34,16 @@ export function revalidateSiteSettings() {
   revalidatePath("/", "layout");
   void invalidateCache("site-settings");
 }
+
+/** Call after an agent's verification status changes — affects the public
+ *  vendor showcase on the homepage. */
+export function revalidateVendors() {
+  revalidatePath("/");
+  void invalidateCache("public-vendors:6");
+}
+
+/** Call after a vendor ad is approved/rejected/paused/expired. */
+export function revalidateVendorAds() {
+  revalidatePath("/");
+  void invalidateCache("public-vendor-ads:6");
+}

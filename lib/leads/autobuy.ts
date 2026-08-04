@@ -7,9 +7,6 @@ import { logAudit } from "../audit";
 import { sendEmail } from "../email/mailer";
 import { agentAutoLeadPurchased } from "../email/templates";
 
-function startOfDay() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
-function startOfMonth() { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); }
-
 /**
  * Runs auto-buy for a lead that has just become purchasable (priced + available).
  * Reuses the same atomic purchaseLead transaction — there is NO separate unsafe
@@ -25,7 +22,7 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
 
     const prefs = await prisma.agentPreference.findMany({
       where: { autoBuyEnabled: true },
-      include: { agent: { include: { wallet: true, user: true } } },
+      include: { agent: { include: { creditBalance: true, user: true } } },
     });
 
     for (const pref of prefs) {
@@ -36,26 +33,18 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
       const agent = pref.agent;
       const price = current.price;
 
-      // --- Safety gates (before touching the wallet) ---
+      // --- Safety gates (before touching credits) ---
       if (agent.status !== "APPROVED") continue;                       // active
       if (agent.verificationStatus !== "VERIFIED") continue;           // verified
-      if (pref.autoBuyMaxPrice != null && price > pref.autoBuyMaxPrice) continue;
-      if (!leadMatches(lead, autoBuyCriteria(pref))) continue;         // matches filters
-      if ((agent.wallet?.balance ?? 0) < price) continue;             // sufficient balance
+      if (!leadMatches(lead, autoBuyCriteria(pref))) continue;         // matches filters (destination/category/client location)
+      if ((agent.creditBalance?.balance ?? 0) < 1) continue;           // needs at least 1 Lead Credit — consumeCreditsInTx re-checks atomically inside purchaseLead
 
       // already holds this lead?
       const held = await prisma.leadAssignment.findUnique({ where: { leadId_agentId: { leadId, agentId: agent.id } } });
       if (held) continue;
 
-      // daily purchase limit
-      if (pref.autoBuyDailyLimit != null) {
-        const todayCount = await prisma.leadAssignment.count({ where: { agentId: agent.id, purchasedAt: { gte: startOfDay() } } });
-        if (todayCount >= pref.autoBuyDailyLimit) continue;
-      }
-      // monthly budget
-      if (pref.autoBuyMonthlyBudget != null) {
-        const spent = await prisma.leadPayment.aggregate({ _sum: { amount: true }, where: { agentId: agent.id, createdAt: { gte: startOfMonth() } } });
-        if ((spent._sum.amount ?? 0) + price > pref.autoBuyMonthlyBudget) continue;
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[autobuy] leadId=%s autoBuyAgentId=%s", leadId, agent.id);
       }
 
       // --- Purchase via the shared atomic transaction ---

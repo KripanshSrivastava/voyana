@@ -17,16 +17,10 @@ export default async function PreferencesPage() {
     alertInApp: pref?.alertInApp ?? true,
     alertCategories: parseJson<string[]>(pref?.alertCategories ?? null, []),
     alertDestinations: parseJson<string[]>(pref?.alertDestinations ?? null, []).join(", "),
-    alertMinQuality: pref?.alertMinQuality ?? "",
-    alertMinBudget: pref?.alertMinBudget?.toString() ?? "",
     autoBuyEnabled: pref?.autoBuyEnabled ?? false,
     autoBuyCategories: parseJson<string[]>(pref?.autoBuyCategories ?? null, []),
     autoBuyDestinations: parseJson<string[]>(pref?.autoBuyDestinations ?? null, []).join(", "),
     autoBuyClientLocations: parseJson<string[]>(pref?.autoBuyClientLocations ?? null, []).join(", "),
-    autoBuyMinQuality: pref?.autoBuyMinQuality ?? "",
-    autoBuyMaxPrice: pref?.autoBuyMaxPrice?.toString() ?? "",
-    autoBuyDailyLimit: pref?.autoBuyDailyLimit?.toString() ?? "",
-    autoBuyMonthlyBudget: pref?.autoBuyMonthlyBudget?.toString() ?? "",
   };
 
   return (

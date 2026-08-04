@@ -28,6 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "Tell us where you want to go and get personalized travel options from vetted travel experts.",
     metadataBase: new URL("http://localhost:3100"),
     openGraph: { title, type: "website" },
+    icons: s.faviconUrl ? { icon: s.faviconUrl } : undefined,
   };
 }
 

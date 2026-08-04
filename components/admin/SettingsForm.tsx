@@ -7,7 +7,7 @@ import { Input, Textarea, Field, Button, Card } from "@/components/ui";
 import { SingleImage } from "@/components/admin/ImageUploader";
 
 export type SettingsValue = {
-  brandName: string; tagline: string; logoUrl: string;
+  brandName: string; tagline: string; logoUrl: string; faviconUrl: string; heroImage: string;
   phone: string; whatsapp: string; email: string; address: string;
   facebook: string; instagram: string; twitter: string; youtube: string;
   defaultLeadPrice: string; leadMaxAgents: string; leadExpiryHours: string;
@@ -33,7 +33,7 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          brandName: f.brandName, tagline: f.tagline, logoUrl: f.logoUrl,
+          brandName: f.brandName, tagline: f.tagline, logoUrl: f.logoUrl, faviconUrl: f.faviconUrl, heroImage: f.heroImage,
           phone: f.phone, whatsapp: f.whatsapp, email: f.email, address: f.address,
           socials: { facebook: f.facebook, instagram: f.instagram, twitter: f.twitter, youtube: f.youtube },
           defaultLeadPrice: Number(f.defaultLeadPrice), leadMaxAgents: Number(f.leadMaxAgents), leadExpiryHours: Number(f.leadExpiryHours),
@@ -59,6 +59,13 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
         <Field label="Brand name"><Input value={f.brandName} onChange={(e) => set("brandName", e.target.value)} /></Field>
         <Field label="Tagline"><Input value={f.tagline} onChange={(e) => set("tagline", e.target.value)} /></Field>
         <SingleImage value={f.logoUrl} onChange={(v) => set("logoUrl", v)} folder="brand" label="Logo" />
+        <SingleImage value={f.faviconUrl} onChange={(v) => set("faviconUrl", v)} folder="brand" label="Favicon" />
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <h2 className="font-semibold text-navy-900">Landing page hero</h2>
+        <p className="text-sm text-navy-500">The background image on the homepage. This is completely separate from destination/package images — uploading here is the only way to change it.</p>
+        <SingleImage value={f.heroImage} onChange={(v) => set("heroImage", v)} folder="hero" label="Hero / background image" />
       </Card>
 
       <Card className="p-6 space-y-4">

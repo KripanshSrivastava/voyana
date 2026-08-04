@@ -18,6 +18,9 @@ export async function runLeadAlerts(leadId: string): Promise<void> {
     for (const pref of prefs) {
       if (pref.agent.status === "SUSPENDED" || pref.agent.status === "REJECTED") continue;
       if (!leadMatches(lead, alertCriteria(pref))) continue;
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[alerts] leadId=%s alertAgentId=%s", leadId, pref.agentId);
+      }
 
       const title = `New matching lead — ${lead.destinationText}`;
       const body = `${lead.tripCategory ? lead.tripCategory + " · " : ""}Budget ${lead.budget ? "₹" + lead.budget.toLocaleString("en-IN") : "—"} · Quality ${lead.quality}`;

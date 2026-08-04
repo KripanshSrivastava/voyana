@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRIP_CATEGORIES } from "./constants";
 
 // ---- Public lead ----------------------------------------------------------
 
@@ -116,13 +117,18 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
 export const agentSignupSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(160),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  password: z.string().min(8, "Password must be at least 8 characters")
+    .max(100)
+    .regex(PASSWORD_POLICY, "Password must include upper and lower case letters, a number, and a special character"),
   companyName: z.string().trim().min(2, "Company name is required").max(160),
   phone: z.string().trim().min(7).max(20),
   city: z.string().trim().max(120).optional().or(z.literal("")),
+  state: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
 // ---- Vendor content submissions (moderation queue) -------------------------
@@ -136,6 +142,7 @@ export const vendorDestinationSubmissionSchema = z.object({
   bestTime: z.string().max(160).optional().or(z.literal("")),
   tripTypes: z.array(z.string()).optional().default([]),
   highlights: z.array(z.string()).optional().default([]),
+  heroImage: z.string().max(1000).optional().or(z.literal("")),
 });
 
 export const vendorPackageSubmissionSchema = z.object({
@@ -147,6 +154,7 @@ export const vendorPackageSubmissionSchema = z.object({
   durationDays: z.coerce.number().int().min(0).optional().nullable(),
   durationNights: z.coerce.number().int().min(0).optional().nullable(),
   tripType: z.string().max(60).optional().or(z.literal("")),
+  heroImage: z.string().max(1000).optional().or(z.literal("")),
 });
 
 // ---- CMS: destinations ----------------------------------------------------
@@ -165,6 +173,7 @@ export const destinationSchema = z.object({
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })).optional().default([]),
   seoTitle: z.string().max(200).optional().or(z.literal("")),
   seoDescription: z.string().max(400).optional().or(z.literal("")),
+  category: z.enum(TRIP_CATEGORIES).optional().nullable(),
   noindex: z.boolean().optional().default(false),
   published: z.boolean().optional().default(false),
   featured: z.boolean().optional().default(false),
@@ -214,6 +223,7 @@ export const settingsSchema = z.object({
   brandName: z.string().min(1).max(120),
   tagline: z.string().max(200).optional().or(z.literal("")),
   logoUrl: z.string().max(1000).optional().or(z.literal("")),
+  heroImage: z.string().max(1000).optional().or(z.literal("")),
   faviconUrl: z.string().max(1000).optional().or(z.literal("")),
   phone: z.string().max(40).optional().or(z.literal("")),
   whatsapp: z.string().max(40).optional().or(z.literal("")),

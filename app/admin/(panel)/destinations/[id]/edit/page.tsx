@@ -23,6 +23,7 @@ export default async function EditDestinationPage({ params }: { params: Promise<
     faqs: parseJson<{ question: string; answer: string }[]>(d.faqs, []),
     seoTitle: d.seoTitle ?? "",
     seoDescription: d.seoDescription ?? "",
+    category: d.category ?? "",
     noindex: d.noindex,
     published: d.published,
     featured: d.featured,

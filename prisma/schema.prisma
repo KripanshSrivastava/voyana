@@ -27,8 +27,35 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  agent         Agent?
-  notifications Notification[]
+  // Email-verification / 2FA are APP-level gates layered on top of Supabase
+  // Auth (which still owns credentials/sessions) — distinct from
+  // Agent.verificationStatus (business/vendor approval, admin-controlled).
+  // Defaults to true so existing rows (created before this feature existed)
+  // are never retroactively locked out; only the agent-signup flow opts new
+  // accounts into starting at false.
+  emailVerified   Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  twoFactorEnabled Boolean  @default(false)
+
+  agent              Agent?
+  notifications      Notification[]
+  verificationTokens VerificationToken[]
+}
+
+// One-time codes for email verification and email 2FA. Reused for both
+// (same shape: hashed code, expiry, attempt count) rather than two tables.
+model VerificationToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String    // EMAIL_VERIFY | TWO_FA
+  codeHash   String    // sha256 of the OTP — plaintext code is never stored
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, type, consumedAt])
 }
 
 model Agent {
@@ -268,6 +295,7 @@ model AgentCreditBalance {
 
 model LeadCreditPackage {
   id           String   @id @default(cuid())
+  code         String?  @unique // stable identifier for code to reference (e.g. "LEAD_100") — never the display name
   name         String
   credits      Int
   priceInr     Int
@@ -516,6 +544,11 @@ model Destination {
   featured         Boolean @default(false)
   sortOrder        Int     @default(0)
 
+  // Classifies leads created against this destination (same DOMESTIC |
+  // INTERNATIONAL | INBOUND vocabulary as Lead.tripCategory below) so
+  // category-based alert/auto-buy rules can match leads at ingestion time.
+  category         String?
+
   // vendor submission / moderation (admin-authored content defaults to APPROVED
   // so nothing existing is affected)
   submittedByAgentId String?
@@ -654,6 +687,7 @@ model SiteSetting {
   brandName          String @default("Voyana")
   tagline            String @default("Your trip. Your way.")
   logoUrl            String?
+  heroImage          String? // explicit landing-page hero/background — NEVER inferred from a destination's image
   faviconUrl         String?
   phone              String?
   whatsapp           String?

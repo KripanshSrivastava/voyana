@@ -25,23 +25,22 @@ function pageLink(path: string, params: URLSearchParams, nextPage: number) {
   return `${path}?${next.toString()}`;
 }
 
-export default async function AgentLeadsPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+export default async function AgentLeadsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { agent } = await requireAgent();
+  const sp = await searchParams;
   const filters = {
-    destination: paramValue(searchParams, "destination"),
-    clientLocation: paramValue(searchParams, "clientLocation"),
-    category: paramValue(searchParams, "category"),
-    tripType: paramValue(searchParams, "tripType"),
-    minBudget: toNumber(paramValue(searchParams, "minBudget")),
-    maxBudget: toNumber(paramValue(searchParams, "maxBudget")),
-    minTravelers: toNumber(paramValue(searchParams, "minTravelers")),
-    maxTravelers: toNumber(paramValue(searchParams, "maxTravelers")),
-    travelDateFrom: paramValue(searchParams, "travelDateFrom"),
-    travelDateTo: paramValue(searchParams, "travelDateTo"),
-    search: paramValue(searchParams, "search"),
-    sort: paramValue(searchParams, "sort"),
-    page: toNumber(paramValue(searchParams, "page")) ?? 1,
-    limit: toNumber(paramValue(searchParams, "limit")) ?? 20,
+    destination: paramValue(sp, "destination"),
+    clientLocation: paramValue(sp, "clientLocation"),
+    category: paramValue(sp, "category"),
+    tripType: paramValue(sp, "tripType"),
+    minTravelers: toNumber(paramValue(sp, "minTravelers")),
+    maxTravelers: toNumber(paramValue(sp, "maxTravelers")),
+    travelDateFrom: paramValue(sp, "travelDateFrom"),
+    travelDateTo: paramValue(sp, "travelDateTo"),
+    search: paramValue(sp, "search"),
+    sort: paramValue(sp, "sort"),
+    page: toNumber(paramValue(sp, "page")) ?? 1,
+    limit: toNumber(paramValue(sp, "limit")) ?? 20,
   };
   const result = await searchAvailableLeads(agent.id, filters);
   const canBuy = agent.status === "APPROVED";

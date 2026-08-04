@@ -40,6 +40,7 @@ export const POST = handler(async (req: Request) => {
       durationDays: d.durationDays ?? null,
       durationNights: d.durationNights ?? null,
       tripType: d.tripType || null,
+      heroImage: d.heroImage || null,
       published: false,
       submittedByAgentId: session.agentId,
       moderationStatus: "DRAFT",

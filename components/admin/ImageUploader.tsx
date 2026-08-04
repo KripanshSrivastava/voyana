@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 const GENERIC_UPLOAD_ERROR = "Image upload failed. Please try again.";
 
-async function uploadFiles(files: FileList, folder: string): Promise<string[]> {
+async function uploadFiles(files: FileList, folder: string, endpoint: string): Promise<string[]> {
   const fd = new FormData();
   fd.set("folder", folder);
   Array.from(files).forEach((f) => fd.append("file", f));
-  const res = await fetch("/api/admin/media", { method: "POST", body: fd });
+  const res = await fetch(endpoint, { method: "POST", body: fd });
   const json = await res.json().catch(() => null);
   if (!res.ok || !json?.ok) {
     // 422 = a real validation message worth showing (bad file type/size).
@@ -27,11 +27,13 @@ export function SingleImage({
   onChange,
   folder = "general",
   label = "Hero image",
+  endpoint = "/api/admin/media",
 }: {
   value: string;
   onChange: (url: string) => void;
   folder?: string;
   label?: string;
+  endpoint?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function SingleImage({
     setBusy(true);
     setError(null);
     try {
-      const [url] = await uploadFiles(files, folder);
+      const [url] = await uploadFiles(files, folder, endpoint);
       onChange(url);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -82,10 +84,12 @@ export function GalleryImages({
   value,
   onChange,
   folder = "general",
+  endpoint = "/api/admin/media",
 }: {
   value: string[];
   onChange: (urls: string[]) => void;
   folder?: string;
+  endpoint?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +100,7 @@ export function GalleryImages({
     setBusy(true);
     setError(null);
     try {
-      const urls = await uploadFiles(files, folder);
+      const urls = await uploadFiles(files, folder, endpoint);
       onChange([...value, ...urls]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");

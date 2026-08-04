@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Filter, Loader2, X } from "lucide-react";
 import { Button, Input, Select, Card } from "@/components/ui";
-import { LEAD_QUALITIES, TRIP_CATEGORIES, ASSIGNMENT_STATUSES } from "@/lib/constants";
+import { TRIP_CATEGORIES, ASSIGNMENT_STATUSES } from "@/lib/constants";
 import { titleCase } from "@/lib/utils";
 
 type LeadFiltersDrawerProps = {
@@ -91,12 +91,6 @@ export function LeadFiltersDrawer({ mode, values, count }: LeadFiltersDrawerProp
                 {TRIP_CATEGORIES.map((c) => <option key={c} value={c}>{titleCase(c)}</option>)}
               </Select>
               <Input name="tripType" defaultValue={clean(defaults.tripType)} placeholder="Trip type" />
-              <Select name="quality" defaultValue={clean(defaults.quality)}>
-                <option value="">All lead qualities</option>
-                {LEAD_QUALITIES.map((q) => <option key={q} value={q}>{titleCase(q)}</option>)}
-              </Select>
-              <Input name="minBudget" type="number" defaultValue={clean(defaults.minBudget)} placeholder="Min budget" />
-              <Input name="maxBudget" type="number" defaultValue={clean(defaults.maxBudget)} placeholder="Max budget" />
               <Input name="minTravelers" type="number" defaultValue={clean(defaults.minTravelers)} placeholder="Min travelers" />
               <Input name="maxTravelers" type="number" defaultValue={clean(defaults.maxTravelers)} placeholder="Max travelers" />
               <Input name="travelDateFrom" type="date" defaultValue={clean(defaults.travelDateFrom)} />

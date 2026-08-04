@@ -1,6 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { getSession, type SessionUser } from "./auth";
+import { getSession, agentAuthGate, type SessionUser } from "./auth";
 import { prisma } from "./db";
 
 export async function requireAdmin(): Promise<SessionUser> {
@@ -18,10 +18,16 @@ export async function requireAgent() {
   const session = await getSession();
   if (!session) redirect("/agent/login");
   if (session.role !== "AGENT" || !session.agentId) redirect("/agent/login");
+  const gate = await agentAuthGate(session);
+  if (gate === "NEEDS_EMAIL_VERIFICATION") redirect("/agent/verify-email");
+  if (gate === "NEEDS_TWO_FACTOR") redirect("/agent/verify-2fa");
   const agent = await prisma.agent.findUnique({
     where: { id: session.agentId },
     include: { wallet: true, creditBalance: true },
   });
   if (!agent) redirect("/agent/login");
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[guards] authenticatedAgentId=%s", agent.id);
+  }
   return { session, agent };
 }

@@ -23,23 +23,24 @@ function pageLink(path: string, params: URLSearchParams, nextPage: number) {
   return `${path}?${next.toString()}`;
 }
 
-export default async function PurchasesPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+export default async function PurchasesPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { agent } = await requireAgent();
+  const sp = await searchParams;
   const filters = {
-    status: paramValue(searchParams, "status"),
-    destination: paramValue(searchParams, "destination"),
-    clientLocation: paramValue(searchParams, "clientLocation"),
-    category: paramValue(searchParams, "category"),
-    travelDateFrom: paramValue(searchParams, "travelDateFrom"),
-    travelDateTo: paramValue(searchParams, "travelDateTo"),
-    purchaseDateFrom: paramValue(searchParams, "purchaseDateFrom"),
-    purchaseDateTo: paramValue(searchParams, "purchaseDateTo"),
-    search: paramValue(searchParams, "search"),
-    leadCode: paramValue(searchParams, "leadCode"),
-    customerName: paramValue(searchParams, "customerName"),
-    sort: paramValue(searchParams, "sort"),
-    page: toNumber(paramValue(searchParams, "page")) ?? 1,
-    limit: toNumber(paramValue(searchParams, "limit")) ?? 20,
+    status: paramValue(sp, "status"),
+    destination: paramValue(sp, "destination"),
+    clientLocation: paramValue(sp, "clientLocation"),
+    category: paramValue(sp, "category"),
+    travelDateFrom: paramValue(sp, "travelDateFrom"),
+    travelDateTo: paramValue(sp, "travelDateTo"),
+    purchaseDateFrom: paramValue(sp, "purchaseDateFrom"),
+    purchaseDateTo: paramValue(sp, "purchaseDateTo"),
+    search: paramValue(sp, "search"),
+    leadCode: paramValue(sp, "leadCode"),
+    customerName: paramValue(sp, "customerName"),
+    sort: paramValue(sp, "sort"),
+    page: toNumber(paramValue(sp, "page")) ?? 1,
+    limit: toNumber(paramValue(sp, "limit")) ?? 20,
   };
   const result = await searchAgentPurchases(agent.id, filters);
   const params = new URLSearchParams();

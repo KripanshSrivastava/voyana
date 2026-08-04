@@ -3,6 +3,7 @@ import { handler, ok, fail } from "@/lib/api";
 import { loginSchema } from "@/lib/validation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth";
+import { issueCode } from "@/lib/auth/verification";
 import type { Role } from "@/lib/constants";
 
 export const POST = handler(async (req: Request) => {
@@ -36,6 +37,19 @@ export const POST = handler(async (req: Request) => {
   if (intendedRole === "AGENT" && user.role !== "AGENT") {
     await signOut();
     return fail("This login is for travel agents. Use the admin login instead.", 403);
+  }
+
+  // Agent verification gates — checked directly here (not via agentAuthGate,
+  // which only checks whether a 2FA challenge is PENDING; on a fresh login
+  // with 2FA enabled none has been issued yet, so it must be issued here).
+  if (user.role === "AGENT") {
+    if (!user.emailVerified) {
+      return ok({ role: user.role, agentStatus: user.agent?.status ?? null, requiresEmailVerification: true });
+    }
+    if (user.twoFactorEnabled) {
+      await issueCode({ userId: user.id, email: user.email, name: user.name, type: "TWO_FA" });
+      return ok({ role: user.role, agentStatus: user.agent?.status ?? null, requiresTwoFactor: true });
+    }
   }
 
   return ok({ role: user.role, agentStatus: user.agent?.status ?? null });

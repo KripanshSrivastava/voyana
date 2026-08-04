@@ -70,6 +70,57 @@ export function getFeaturedPackages(kind: "PACKAGE" | "TOUR", take = 6) {
   );
 }
 
+/** Public "verified partners" showcase — only APPROVED + VERIFIED agents,
+ *  and only public-safe fields (no phone/email/PII). */
+export function getPublicVendors(take = 6) {
+  return cached(`public-vendors:${take}`, LIST_TTL_SECONDS, () =>
+    prisma.agent.findMany({
+      where: { status: "APPROVED", verificationStatus: "VERIFIED" },
+      orderBy: { verifiedAt: "desc" },
+      take,
+      select: {
+        id: true,
+        companyName: true,
+        city: true,
+        state: true,
+        website: true,
+        socials: true,
+        profileImage: true,
+      },
+    })
+  );
+}
+
+/** Public vendor ad slots — approved, and within their scheduled date window
+ *  (or no dates set). Caller must additionally check the vendorAdsEnabled
+ *  feature flag before showing these; that's a site-wide toggle, not a filter
+ *  on individual ads, so it stays out of this query. */
+export function getPublicVendorAds(take = 6) {
+  return cached(`public-vendor-ads:${take}`, LIST_TTL_SECONDS, async () => {
+    const now = new Date();
+    return prisma.vendorAd.findMany({
+      where: {
+        status: "APPROVED",
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+        ],
+      },
+      orderBy: [{ maxBid: "desc" }, { createdAt: "desc" }],
+      take,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        landingUrl: true,
+        destination: true,
+        agent: { select: { companyName: true } },
+      },
+    });
+  });
+}
+
 export async function getPackageBySlug(slug: string, kind?: "PACKAGE" | "TOUR") {
   return prisma.tourPackage.findFirst({
     where: { slug, published: true, ...(kind ? { kind } : {}) },
