@@ -4,13 +4,21 @@ import { useState, useRef } from "react";
 import { Upload, X, Star, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const GENERIC_UPLOAD_ERROR = "Image upload failed. Please try again.";
+
 async function uploadFiles(files: FileList, folder: string): Promise<string[]> {
   const fd = new FormData();
   fd.set("folder", folder);
   Array.from(files).forEach((f) => fd.append("file", f));
   const res = await fetch("/api/admin/media", { method: "POST", body: fd });
-  const json = await res.json();
-  if (!res.ok || !json.ok) throw new Error(json.error || "Upload failed");
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.ok) {
+    // 422 = a real validation message worth showing (bad file type/size).
+    // Anything else (auth/session/server) collapses to one clean message —
+    // the technical cause is logged server-side, not exposed here.
+    const message = res.status === 422 && json?.error ? json.error : GENERIC_UPLOAD_ERROR;
+    throw new Error(message);
+  }
   return (json.data as { url: string }[]).map((m) => m.url);
 }
 

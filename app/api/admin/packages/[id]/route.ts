@@ -4,6 +4,8 @@ import { requireRole } from "@/lib/auth";
 import { packageSchema } from "@/lib/validation";
 import { uniquePackageSlug } from "@/lib/cms/slug";
 import { packageScalars, packageChildren } from "@/lib/cms/packageWrite";
+import { revalidatePackages } from "@/lib/cache/revalidate";
+import { assertPublishAllowed } from "@/lib/cms/moderation";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -16,13 +18,19 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
     const data: Record<string, boolean> = {};
     if (typeof body.published === "boolean") data.published = body.published;
     if (typeof body.featured === "boolean") data.featured = body.featured;
-    await prisma.tourPackage.update({ where: { id }, data });
+    if (data.published) {
+      const current = await prisma.tourPackage.findUnique({ where: { id }, select: { moderationStatus: true } });
+      if (current) assertPublishAllowed(current.moderationStatus, true);
+    }
+    const updated = await prisma.tourPackage.update({ where: { id }, data, select: { slug: true, kind: true } });
+    revalidatePackages(updated.slug, updated.kind as "PACKAGE" | "TOUR");
     return ok({ id });
   }
 
   const d = packageSchema.parse(body);
   const existing = await prisma.tourPackage.findUnique({ where: { id } });
   if (!existing) return fail("Not found.", 404);
+  assertPublishAllowed(existing.moderationStatus, d.published);
   const slug = await uniquePackageSlug(d.slug || d.title, id);
   const children = packageChildren(d);
 
@@ -46,13 +54,17 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
       },
     }),
   ]);
+  revalidatePackages(slug, d.kind);
+  if (existing.slug !== slug) revalidatePackages(existing.slug, existing.kind as "PACKAGE" | "TOUR");
   return ok({ id, slug });
 });
 
 export const DELETE = handler(async (_req: Request, ctx: Ctx) => {
   await requireRole("ADMIN");
   const { id } = await ctx.params;
+  const existing = await prisma.tourPackage.findUnique({ where: { id }, select: { slug: true, kind: true } });
   // Leads referencing this package keep their snapshot (packageId set null via SetNull).
   await prisma.tourPackage.delete({ where: { id } });
+  revalidatePackages(existing?.slug, existing?.kind as "PACKAGE" | "TOUR" | undefined);
   return ok({ id });
 });

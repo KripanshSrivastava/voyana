@@ -67,9 +67,12 @@ export function SiteFooter({ settings }: { settings: Settings }) {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-navy-400 sm:flex-row sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-navy-400 sm:flex-row sm:px-6 lg:px-8">
           <p>© {year} {settings.brandName}. All rights reserved.</p>
-          <p>{settings.tagline}</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white">Terms &amp; Conditions</Link>
+          </div>
         </div>
       </div>
     </footer>

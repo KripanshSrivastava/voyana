@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { packageSchema } from "@/lib/validation";
 import { uniquePackageSlug } from "@/lib/cms/slug";
 import { packageScalars, packageChildren } from "@/lib/cms/packageWrite";
+import { revalidatePackages } from "@/lib/cache/revalidate";
 
 export const POST = handler(async (req: Request) => {
   await requireRole("ADMIN");
@@ -23,5 +24,6 @@ export const POST = handler(async (req: Request) => {
     },
     select: { id: true, slug: true, kind: true },
   });
+  revalidatePackages(created.slug, created.kind as "PACKAGE" | "TOUR");
   return ok(created);
 });

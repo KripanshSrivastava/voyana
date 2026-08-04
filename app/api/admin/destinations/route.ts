@@ -3,6 +3,7 @@ import { handler, ok } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { destinationSchema } from "@/lib/validation";
 import { uniqueDestinationSlug } from "@/lib/cms/slug";
+import { revalidateDestinations } from "@/lib/cache/revalidate";
 
 export const POST = handler(async (req: Request) => {
   await requireRole("ADMIN");
@@ -31,5 +32,7 @@ export const POST = handler(async (req: Request) => {
     },
     select: { id: true, slug: true },
   });
+  if (created.slug && d.published) revalidateDestinations(created.slug);
+  else revalidateDestinations();
   return ok(created);
 });

@@ -1,11 +1,18 @@
 import { getSiteSettings, type Socials } from "@/lib/settings";
 import { PageHeader } from "@/components/admin/ui";
 import { SettingsForm, type SettingsValue } from "@/components/admin/SettingsForm";
+import { FeatureFlagsCard } from "@/components/admin/FeatureFlagsCard";
 import { parseJson } from "@/lib/utils";
 
 export default async function SettingsPage() {
   const s = await getSiteSettings();
   const socials = parseJson<Socials>(s.socials, {});
+  const flags = {
+    vendorAdsEnabled: s.vendorAdsEnabled,
+    autoBuyEnabled: s.autoBuyEnabled,
+    supportEnabled: s.supportEnabled,
+    packageMarketplaceEnabled: s.packageMarketplaceEnabled,
+  };
   const initial: SettingsValue = {
     brandName: s.brandName, tagline: s.tagline, logoUrl: s.logoUrl ?? "",
     phone: s.phone ?? "", whatsapp: s.whatsapp ?? "", email: s.email ?? "", address: s.address ?? "",
@@ -17,7 +24,12 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader title="Settings" subtitle="Brand, contact details, lead defaults and tracking." />
-      <SettingsForm initial={initial} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <FeatureFlagsCard initial={flags} />
+      </div>
+      <div className="mt-6">
+        <SettingsForm initial={initial} />
+      </div>
     </div>
   );
 }

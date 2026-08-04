@@ -2,12 +2,15 @@ import { prisma } from "@/lib/db";
 import { handler, ok } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { settingsSchema } from "@/lib/validation";
+import { revalidateSiteSettings } from "@/lib/cache/revalidate";
 
 export const PATCH = handler(async (req: Request) => {
   await requireRole("ADMIN");
   const s = settingsSchema.parse(await req.json());
 
-  await prisma.siteSetting.upsert({
+  // Throws on failure — handler() turns that into a proper error response,
+  // so a failed write never falls through to the success return below.
+  const saved = await prisma.siteSetting.upsert({
     where: { id: "default" },
     create: {
       id: "default",
@@ -15,7 +18,8 @@ export const PATCH = handler(async (req: Request) => {
     },
     update: toData(s),
   });
-  return ok({ saved: true });
+  revalidateSiteSettings();
+  return ok({ saved: true, updatedAt: saved.updatedAt });
 });
 
 function toData(s: ReturnType<typeof settingsSchema.parse>) {

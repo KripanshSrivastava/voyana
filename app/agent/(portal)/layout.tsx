@@ -20,6 +20,7 @@ export default async function AgentPortalLayout({ children }: { children: React.
       verified={agent.verificationStatus === "VERIFIED"}
       unread={unread}
       adsEnabled={flags.vendorAdsEnabled}
+      submissionsEnabled={flags.packageMarketplaceEnabled}
     >
       {children}
     </AgentShell>

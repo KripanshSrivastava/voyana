@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, Briefcase, Wallet, User, LogOut, Menu, X, Plane, AlertTriangle, Bell, Settings, BadgeCheck, SlidersHorizontal, LifeBuoy, Megaphone } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Briefcase, Wallet, User, LogOut, Menu, X, Plane, AlertTriangle, Bell, Settings, BadgeCheck, SlidersHorizontal, LifeBuoy, Megaphone, FilePlus2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const BASE_NAV = [
@@ -18,6 +18,7 @@ const BASE_NAV = [
   { href: "/agent/settings", label: "Settings", icon: Settings },
 ];
 const ADS_NAV = { href: "/agent/ads", label: "My Ads", icon: Megaphone };
+const SUBMISSIONS_NAV = { href: "/agent/submissions", label: "Submissions", icon: FilePlus2 };
 
 export function AgentShell({
   name,
@@ -27,6 +28,7 @@ export function AgentShell({
   verified = false,
   unread = 0,
   adsEnabled = false,
+  submissionsEnabled = false,
   children,
 }: {
   name: string;
@@ -36,12 +38,13 @@ export function AgentShell({
   verified?: boolean;
   unread?: number;
   adsEnabled?: boolean;
+  submissionsEnabled?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const NAV = adsEnabled ? [...BASE_NAV, ADS_NAV] : BASE_NAV;
+  const NAV = [...BASE_NAV, ...(submissionsEnabled ? [SUBMISSIONS_NAV] : []), ...(adsEnabled ? [ADS_NAV] : [])];
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });

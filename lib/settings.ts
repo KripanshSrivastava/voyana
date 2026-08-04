@@ -1,9 +1,16 @@
 import { prisma } from "./db";
 import { parseJson } from "./utils";
+import { cached } from "./cache/publicCache";
 
 export type Socials = { facebook?: string; instagram?: string; twitter?: string; youtube?: string };
 
-/** Site settings are a singleton row. Create-with-defaults on first access. */
+/**
+ * Site settings are a singleton row. Always read live from the database —
+ * this function also feeds feature flags (getFlags()) and business numbers
+ * (leadMaxAgents, defaultLeadPrice) used by lead ingestion/purchase, so it
+ * must never be cache-stale. Only the narrower getPublicSettings() below,
+ * used purely for public marketing chrome, is cached.
+ */
 export async function getSiteSettings() {
   const existing = await prisma.siteSetting.findUnique({ where: { id: "default" } });
   if (existing) return existing;
@@ -23,21 +30,23 @@ export async function getSiteSettings() {
 }
 
 export async function getPublicSettings() {
-  const s = await getSiteSettings();
-  return {
-    brandName: s.brandName,
-    tagline: s.tagline,
-    logoUrl: s.logoUrl,
-    phone: s.phone,
-    whatsapp: s.whatsapp,
-    email: s.email,
-    address: s.address,
-    footerText: s.footerText,
-    socials: parseJson<Socials>(s.socials, {}),
-    defaultSeoTitle: s.defaultSeoTitle,
-    defaultSeoDescription: s.defaultSeoDescription,
-    gaId: s.gaId,
-    metaPixelId: s.metaPixelId,
-    googleAdsId: s.googleAdsId,
-  };
+  return cached("site-settings", 120, async () => {
+    const s = await getSiteSettings();
+    return {
+      brandName: s.brandName,
+      tagline: s.tagline,
+      logoUrl: s.logoUrl,
+      phone: s.phone,
+      whatsapp: s.whatsapp,
+      email: s.email,
+      address: s.address,
+      footerText: s.footerText,
+      socials: parseJson<Socials>(s.socials, {}),
+      defaultSeoTitle: s.defaultSeoTitle,
+      defaultSeoDescription: s.defaultSeoDescription,
+      gaId: s.gaId,
+      metaPixelId: s.metaPixelId,
+      googleAdsId: s.googleAdsId,
+    };
+  });
 }

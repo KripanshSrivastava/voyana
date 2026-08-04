@@ -125,6 +125,30 @@ export const agentSignupSchema = z.object({
   city: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
+// ---- Vendor content submissions (moderation queue) -------------------------
+// Deliberately leaner than the admin CMS schemas below — no slug/SEO/sort
+// fields; those are admin-only concerns applied once content is approved.
+
+export const vendorDestinationSubmissionSchema = z.object({
+  name: z.string().trim().min(2, "Name is required").max(160),
+  shortDescription: z.string().max(400).optional().or(z.literal("")),
+  longDescription: z.string().max(8000).optional().or(z.literal("")),
+  bestTime: z.string().max(160).optional().or(z.literal("")),
+  tripTypes: z.array(z.string()).optional().default([]),
+  highlights: z.array(z.string()).optional().default([]),
+});
+
+export const vendorPackageSubmissionSchema = z.object({
+  kind: z.enum(["PACKAGE", "TOUR"]).default("PACKAGE"),
+  title: z.string().trim().min(2, "Title is required").max(200),
+  destinationId: z.string().optional().nullable(),
+  shortDescription: z.string().max(400).optional().or(z.literal("")),
+  longDescription: z.string().max(10000).optional().or(z.literal("")),
+  durationDays: z.coerce.number().int().min(0).optional().nullable(),
+  durationNights: z.coerce.number().int().min(0).optional().nullable(),
+  tripType: z.string().max(60).optional().or(z.literal("")),
+});
+
 // ---- CMS: destinations ----------------------------------------------------
 
 export const destinationSchema = z.object({

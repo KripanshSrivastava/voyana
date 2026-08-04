@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/guards";
-import { requireArea } from "@/lib/rbac";
+import { canAccess } from "@/lib/rbac";
 import { PageHeader } from "@/components/admin/ui";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { Card, Badge, Input, Select, Button } from "@/components/ui";
 import { formatDate, titleCase } from "@/lib/utils";
 
@@ -21,7 +22,7 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 export default async function VendorAdsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const session = await requireAdmin();
-  requireArea(session, "marketing");
+  if (!canAccess(session, "marketing")) return <AccessRestricted area="Vendor Ads" />;
   const resolvedSearchParams = await searchParams;
 
   const filters = {

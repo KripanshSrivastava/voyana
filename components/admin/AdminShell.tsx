@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Users, Wallet, TrendingUp, Megaphone, MapPin,
   Package, Compass, Image as ImageIcon, Settings, LogOut, Menu, X, Plane, Inbox,
-  Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon,
+  Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon, ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,7 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: React
       { href: "/admin/packages", label: "Packages", icon: Package },
       { href: "/admin/tours", label: "Tours", icon: Compass },
       { href: "/admin/media", label: "Media", icon: ImageIcon },
+      { href: "/admin/moderation", label: "Content Moderation", icon: ClipboardCheck },
     ],
   },
   {

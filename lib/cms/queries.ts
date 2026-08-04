@@ -1,6 +1,11 @@
 import { prisma } from "../db";
+import { cached } from "../cache/publicCache";
 
 // Public content queries — only ever return published records.
+// Only read-only, publicly-visible listings are cached here (short TTL,
+// invalidated on admin writes via lib/cache/revalidate.ts). Never cache
+// anything wallet/lead/payment/authorization related.
+const LIST_TTL_SECONDS = 120;
 
 export function getPublishedDestinations(opts?: { featuredFirst?: boolean; take?: number }) {
   return prisma.destination.findMany({
@@ -14,12 +19,14 @@ export function getPublishedDestinations(opts?: { featuredFirst?: boolean; take?
 }
 
 export function getFeaturedDestinations(take = 6) {
-  return prisma.destination.findMany({
-    where: { published: true, featured: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    take,
-    include: { _count: { select: { packages: { where: { published: true } } } } },
-  });
+  return cached(`featured-destinations:${take}`, LIST_TTL_SECONDS, () =>
+    prisma.destination.findMany({
+      where: { published: true, featured: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      take,
+      include: { _count: { select: { packages: { where: { published: true } } } } },
+    })
+  );
 }
 
 export async function getDestinationBySlug(slug: string) {
@@ -58,7 +65,9 @@ export function getPublishedPackages(opts?: {
 }
 
 export function getFeaturedPackages(kind: "PACKAGE" | "TOUR", take = 6) {
-  return getPublishedPackages({ kind, featuredOnly: true, take });
+  return cached(`featured-packages:${kind}:${take}`, LIST_TTL_SECONDS, () =>
+    getPublishedPackages({ kind, featuredOnly: true, take })
+  );
 }
 
 export async function getPackageBySlug(slug: string, kind?: "PACKAGE" | "TOUR") {

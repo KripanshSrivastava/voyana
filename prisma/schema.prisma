@@ -79,6 +79,8 @@ model Agent {
   spamReports  SpamReport[]
   tickets      SupportTicket[]
   ads          VendorAd[]
+  submittedDestinations Destination[]
+  submittedPackages     TourPackage[]
 }
 
 model AgentPreference {
@@ -513,11 +515,22 @@ model Destination {
   published        Boolean @default(false)
   featured         Boolean @default(false)
   sortOrder        Int     @default(0)
+
+  // vendor submission / moderation (admin-authored content defaults to APPROVED
+  // so nothing existing is affected)
+  submittedByAgentId String?
+  submittedByAgent   Agent?  @relation(fields: [submittedByAgentId], references: [id], onDelete: SetNull)
+  moderationStatus    String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
+  rejectionReason     String?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   packages TourPackage[]
   leads    Lead[]
+
+  @@index([submittedByAgentId])
+  @@index([moderationStatus])
 }
 
 model TourPackage {
@@ -556,6 +569,11 @@ model TourPackage {
   featured  Boolean @default(false)
   sortOrder Int     @default(0)
 
+  submittedByAgentId String?
+  submittedByAgent   Agent?  @relation(fields: [submittedByAgentId], references: [id], onDelete: SetNull)
+  moderationStatus    String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
+  rejectionReason     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -565,6 +583,9 @@ model TourPackage {
   exclusions PackageExclusion[]
   faqs       PackageFAQ[]
   leads      Lead[]
+
+  @@index([submittedByAgentId])
+  @@index([moderationStatus])
 }
 
 model PackageImage {
