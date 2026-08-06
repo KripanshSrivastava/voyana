@@ -14,7 +14,7 @@ export default async function AgentAdsPage() {
     return (
       <div>
         <PageHeader title="My Ads" subtitle="Promote your packages to travellers." />
-        <Card className="p-6 text-sm text-navy-500">Vendor advertising isn&apos;t available yet. The Voyana team will enable it soon.</Card>
+        <Card className="p-6 text-sm text-navy-500">Vendor advertising isn&apos;t available yet. The Moksh Booking team will enable it soon.</Card>
       </div>
     );
   }

@@ -120,15 +120,15 @@ export function ProfileForm({
             {verification.status === "VERIFIED"
               ? `Your account was verified on ${verification.verifiedAt ? formatDate(new Date(verification.verifiedAt)) : "—"}. The Verified Partner badge is shown across your portal.`
               : verification.status === "UNDER_REVIEW"
-                ? "The Voyana team is reviewing your account. You'll be notified once it's verified."
+                ? "The Moksh Booking team is reviewing your account. You'll be notified once it's verified."
                 : verification.status === "REJECTED"
                   ? "Your verification was not approved. See the note below or contact support."
-                  : "Your account is not yet verified. Complete your company profile — the Voyana team verifies partners manually."}
+                  : "Your account is not yet verified. Complete your company profile — the Moksh Booking team verifies partners manually."}
           </p>
           {verification.notes && (
-            <p className="mt-3 rounded-lg bg-navy-50 px-3 py-2 text-sm text-navy-600"><span className="font-medium">Note from Voyana:</span> {verification.notes}</p>
+            <p className="mt-3 rounded-lg bg-navy-50 px-3 py-2 text-sm text-navy-600"><span className="font-medium">Note from Moksh Booking:</span> {verification.notes}</p>
           )}
-          <p className="mt-4 text-xs text-navy-400">Only the Voyana team can change your verification status.</p>
+          <p className="mt-4 text-xs text-navy-400">Only the Moksh Booking team can change your verification status.</p>
         </Card>
       )}
 

@@ -21,7 +21,7 @@ export default async function AgentSubmissionsPage() {
     return (
       <div>
         <PageHeader title="Submissions" subtitle="Propose destinations, tours and packages." />
-        <Card className="p-6 text-sm text-navy-500">Content submissions aren&apos;t available yet. The Voyana team will enable it soon.</Card>
+        <Card className="p-6 text-sm text-navy-500">Content submissions aren&apos;t available yet. The Moksh Booking team will enable it soon.</Card>
       </div>
     );
   }

@@ -35,7 +35,7 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
 
   await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "credits.adjust", entityType: "wallet", entityId: id, metadata: { type, credits, balanceAfter: balance, reason } });
   if (type === "CREDIT") {
-    await notify({ userId: agent.userId, type: "wallet", title: "Lead Credits adjusted", body: `${credits.toLocaleString("en-IN")} Lead Credits added by Voyana. New balance ${balance.toLocaleString("en-IN")}.`, href: "/agent/wallet" });
+    await notify({ userId: agent.userId, type: "wallet", title: "Lead Credits adjusted", body: `${credits.toLocaleString("en-IN")} Lead Credits added by Moksh Booking. New balance ${balance.toLocaleString("en-IN")}.`, href: "/agent/wallet" });
   }
 
   return ok({ credits: balance });

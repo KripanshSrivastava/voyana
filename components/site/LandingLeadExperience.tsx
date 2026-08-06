@@ -246,7 +246,7 @@ export function LandingLeadExperience({
       )}
 
       {vendorAds.length > 0 && (
-        <Section title="Featured offers from our partners" subtitle="Promoted by verified travel partners on Voyana.">
+        <Section title="Featured offers from our partners" subtitle="Promoted by verified travel partners on Moksh Booking.">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {vendorAds.map((ad, i) => (
               <Reveal key={ad.id} delay={(i % 3) * 90}>
@@ -271,7 +271,7 @@ export function LandingLeadExperience({
       )}
 
       {vendors.length > 0 && (
-        <Section title="Our verified travel partners" subtitle="Real travel businesses, vetted and approved by the Voyana team.">
+        <Section title="Our verified travel partners" subtitle="Real travel businesses, vetted and approved by the Moksh Booking team.">
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {vendors.map((v, i) => (
               <Reveal key={v.id} delay={(i % 3) * 90} className="flex items-center gap-4 rounded-3xl border border-navy-100 bg-white p-5 shadow-sm">
@@ -299,7 +299,7 @@ export function LandingLeadExperience({
       <section className="section-fade">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <Reveal className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">How Voyana works</h2>
+            <h2 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">How Moksh Booking works</h2>
             <p className="mt-3 text-navy-500">Four simple steps between you and your next trip.</p>
           </Reveal>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">

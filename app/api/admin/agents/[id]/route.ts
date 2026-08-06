@@ -44,7 +44,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
       userId: agent.userId,
       type: "verification",
       title: verified ? "You're a Verified Partner ✓" : `Verification ${titleCase(vStatus)}`,
-      body: notes || (verified ? "Your account has been verified by the Voyana team." : undefined),
+      body: notes || (verified ? "Your account has been verified by the Moksh Booking team." : undefined),
       href: "/agent/profile",
     });
     return ok({ id, verificationStatus: vStatus });
@@ -61,7 +61,7 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
 
   if (status === "APPROVED" && agent.status !== "APPROVED" && agent.user.email) {
     try {
-      await sendEmail({ to: agent.user.email, ...agentApproved({ agentName: agent.user.name }) });
+      await sendEmail({ to: agent.user.email, ...agentApproved({ agentName: agent.user.name }), category: "account" });
     } catch (e) {
       console.error("[agent] approval email failed (non-fatal)", e);
     }

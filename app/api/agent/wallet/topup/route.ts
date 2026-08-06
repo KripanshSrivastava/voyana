@@ -21,7 +21,7 @@ export const POST = handler(async (req: Request) => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {
-    return fail("Online payments are not connected yet. Please contact the Voyana team to buy Lead Credits.", 503);
+    return fail("Online payments are not connected yet. Please contact the Moksh Booking team to buy Lead Credits.", 503);
   }
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");

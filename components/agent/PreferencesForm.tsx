@@ -77,7 +77,7 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
             {f.autoBuyEnabled ? "On" : "Off"}
           </label>
         </div>
-        {!autoBuyAllowed && <p className="text-sm text-amber-600">Auto-buy is currently disabled by the Voyana team.</p>}
+        {!autoBuyAllowed && <p className="text-sm text-amber-600">Auto-buy is currently disabled by the Moksh Booking team.</p>}
         <p className="text-sm text-navy-500">Automatically purchase matching leads the moment they become available, using your Lead Credits. Only verified, approved accounts with at least 1 Lead Credit auto-buy.</p>
         <Field label="Categories"><CategoryChips value={f.autoBuyCategories} onChange={(v) => set("autoBuyCategories", v)} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">

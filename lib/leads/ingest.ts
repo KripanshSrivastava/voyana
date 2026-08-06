@@ -207,12 +207,12 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
   try {
     if (email) {
       const t = customerLeadReceived({ name: input.customerName, code: created.code, destination: input.destinationText });
-      await sendEmail({ to: email, ...t });
+      await sendEmail({ to: email, ...t, category: "leads" });
     }
     const adminEmail = process.env.ADMIN_EMAIL;
     if (adminEmail) {
       const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });
-      await sendEmail({ to: adminEmail, ...t });
+      await sendEmail({ to: adminEmail, ...t, category: "leads" });
     }
   } catch (e) {
     console.error("[ingest] notification error (non-fatal)", e);

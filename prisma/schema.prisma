@@ -684,7 +684,7 @@ model Media {
 
 model SiteSetting {
   id                 String @id @default("default")
-  brandName          String @default("Voyana")
+  brandName          String @default("Moksh Booking")
   tagline            String @default("Your trip. Your way.")
   logoUrl            String?
   heroImage          String? // explicit landing-page hero/background — NEVER inferred from a destination's image

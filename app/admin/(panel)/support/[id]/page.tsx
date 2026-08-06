@@ -38,7 +38,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
             <div key={m.id} className={cn("rounded-xl px-4 py-3 text-sm", m.internal ? "border border-dashed border-amber-300 bg-amber-50" : m.authorType === "ADMIN" ? "bg-brand-50" : "bg-navy-50")}>
               <div className="mb-1 flex items-center justify-between text-xs text-navy-400">
                 <span className="font-medium text-navy-600">
-                  {m.authorType === "ADMIN" ? "Voyana Support" : m.authorLabel}
+                  {m.authorType === "ADMIN" ? "Moksh Booking Support" : m.authorLabel}
                   {m.internal && <Badge className="ml-2 bg-amber-100 text-amber-700 ring-amber-600/20">Internal note</Badge>}
                 </span>
                 <span>{formatDateTime(m.createdAt)}</span>

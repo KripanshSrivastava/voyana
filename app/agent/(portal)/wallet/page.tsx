@@ -36,7 +36,7 @@ export default async function WalletPage() {
         <h2 className="mb-1 font-semibold text-navy-900">Get More Travel Leads</h2>
         <p className="mb-5 text-sm text-navy-500">Choose your Lead Credit Package</p>
         {packages.length === 0 ? (
-          <EmptyState title="No packages available" description="The Voyana team is updating Lead Credit packages." />
+          <EmptyState title="No packages available" description="The Moksh Booking team is updating Lead Credit packages." />
         ) : (
           <AddMoney packages={packages} />
         )}

@@ -24,6 +24,7 @@ export const PUT = handler(async (req: Request) => {
         ? "Email two-factor authentication was turned ON for your account. You'll be asked for a code from your email each time you sign in."
         : "Email two-factor authentication was turned OFF for your account.",
     }),
+    category: "account",
   });
 
   return ok({ twoFactorEnabled: enabled });

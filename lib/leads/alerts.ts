@@ -3,6 +3,11 @@ import { prisma } from "../db";
 import { leadMatches, alertCriteria } from "./matching";
 import { notify } from "../notify";
 import { sendEmail } from "../email/mailer";
+import { agentLeadAlert } from "../email/templates";
+
+function appUrl(): string {
+  return process.env.APP_URL || "http://localhost:3100";
+}
 
 /** Notifies agents whose alert preferences match a newly-created lead. Best-effort. */
 export async function runLeadAlerts(leadId: string): Promise<void> {
@@ -26,7 +31,15 @@ export async function runLeadAlerts(leadId: string): Promise<void> {
       const body = `${lead.tripCategory ? lead.tripCategory + " · " : ""}Budget ${lead.budget ? "₹" + lead.budget.toLocaleString("en-IN") : "—"} · Quality ${lead.quality}`;
       if (pref.alertInApp) await notify({ userId: pref.agent.userId, type: "lead", title, body, href: "/agent/leads" });
       if (pref.alertEmail && pref.agent.user.email) {
-        await sendEmail({ to: pref.agent.user.email, subject: title, html: `<p>${body}</p><p>View available leads in your Voyana portal.</p>` });
+        const t = agentLeadAlert({
+          agentName: pref.agent.user.name,
+          destination: lead.destinationText,
+          tripCategory: lead.tripCategory,
+          budget: lead.budget,
+          quality: lead.quality,
+          url: `${appUrl()}/agent/leads`,
+        });
+        await sendEmail({ to: pref.agent.user.email, ...t, category: "leads" });
       }
     }
   } catch (e) {

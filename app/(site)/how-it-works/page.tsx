@@ -15,7 +15,7 @@ export default function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
       <header className="text-center">
-        <h1 className="font-display text-4xl font-bold text-navy-900">How Voyana works</h1>
+        <h1 className="font-display text-4xl font-bold text-navy-900">How Moksh Booking works</h1>
         <p className="mx-auto mt-3 max-w-2xl text-lg text-navy-500">
           We&apos;re not a booking engine — we connect travelers with trusted experts who plan trips
           around what you actually want.

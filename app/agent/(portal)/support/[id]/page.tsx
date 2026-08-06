@@ -26,7 +26,7 @@ export default async function AgentTicketPage({ params }: { params: Promise<{ id
           {ticket.messages.map((m) => (
             <div key={m.id} className={cn("rounded-xl px-4 py-3 text-sm", m.authorType === "ADMIN" ? "bg-brand-50" : "bg-navy-50")}>
               <div className="mb-1 flex items-center justify-between text-xs text-navy-400">
-                <span className="font-medium text-navy-600">{m.authorType === "ADMIN" ? "Voyana Support" : m.authorLabel}</span>
+                <span className="font-medium text-navy-600">{m.authorType === "ADMIN" ? "Moksh Booking Support" : m.authorLabel}</span>
                 <span>{formatDateTime(m.createdAt)}</span>
               </div>
               <p className="whitespace-pre-wrap text-navy-800">{m.body}</p>

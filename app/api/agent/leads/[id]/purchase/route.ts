@@ -30,7 +30,7 @@ export const POST = handler(async (_req: Request, ctx: Ctx) => {
         await notify({ userId: session.uid, type: "purchase", title: `Lead purchased — ${lead.code}`, body: `${lead.destinationText} · ₹${result.price.toLocaleString("en-IN")}. Customer details are now available.`, href: `/agent/leads/${id}` });
         if (session.email) {
           const t = agentLeadPurchased({ agentName: session.name, code: lead.code, destination: lead.destinationText, price: result.price });
-          await sendEmail({ to: session.email, ...t });
+          await sendEmail({ to: session.email, ...t, category: "leads" });
         }
       }
     } catch (e) {

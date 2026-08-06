@@ -3,6 +3,12 @@ import { handler, ok, fail } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { getFlags } from "@/lib/flags";
 import { SUPPORT_CATEGORIES } from "@/lib/constants";
+import { sendEmail } from "@/lib/email/mailer";
+import { supportTicketCreated } from "@/lib/email/templates";
+
+function appUrl(): string {
+  return process.env.APP_URL || "http://localhost:3100";
+}
 
 /** Vendor creates a support ticket with an opening message. */
 export const POST = handler(async (req: Request) => {
@@ -24,5 +30,21 @@ export const POST = handler(async (req: Request) => {
       messages: { create: { authorType: "AGENT", authorLabel: session.name, body: message.trim().slice(0, 4000) } },
     },
   });
+
+  // Confirmation email — best-effort, must never fail the ticket creation.
+  try {
+    if (session.email) {
+      const t = supportTicketCreated({
+        name: session.name,
+        subject: subject.trim().slice(0, 160),
+        ticketRef: ticket.id.slice(-8).toUpperCase(),
+        url: `${appUrl()}/agent/support/${ticket.id}`,
+      });
+      await sendEmail({ to: session.email, ...t, category: "support" });
+    }
+  } catch (e) {
+    console.error("[support] confirmation email failed (non-fatal)", e);
+  }
+
   return ok({ id: ticket.id });
 });

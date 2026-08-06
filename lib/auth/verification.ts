@@ -54,7 +54,7 @@ export async function issueCode(params: {
   });
 
   const template = type === "TWO_FA" ? twoFactorCode({ name, code }) : verifyEmailCode({ name, code });
-  const result = await sendEmail({ to: email, ...template });
+  const result = await sendEmail({ to: email, ...template, category: "verify" });
   return { sent: result.ok };
 }
 

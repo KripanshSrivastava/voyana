@@ -43,8 +43,8 @@ export default async function IntegrationsPage() {
     },
     {
       key: "email", name: "Transactional Email", icon: Mail,
-      connected: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
-      detail: process.env.RESEND_API_KEY ? "Provider connected" : "Set RESEND_API_KEY & EMAIL_FROM",
+      connected: Boolean(process.env.RESEND_API_KEY),
+      detail: process.env.RESEND_API_KEY ? "Resend connected" : "Set RESEND_API_KEY (senders come from EMAIL_SEND_DOMAIN)",
       note: "Emails are best-effort — a failure never blocks lead creation.",
     },
     {

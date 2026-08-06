@@ -65,6 +65,7 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
                 budget: lead.budget ?? null,
                 quality: lead.quality,
               }),
+              category: "leads",
             });
           } catch (e) {
             console.error("[autobuy] email failed (non-fatal)", e);

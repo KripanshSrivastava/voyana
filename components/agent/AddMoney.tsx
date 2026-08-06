@@ -50,7 +50,7 @@ export function AddMoney({ packages }: { packages: CreditPackage[] }) {
         order_id: json.data.orderId,
         amount: json.data.amount * 100,
         currency: json.data.currency,
-        name: "Voyana",
+        name: "Moksh Booking",
         description: json.data.packageName,
         handler: () => {
           setMessage("Payment received. Your Lead Credits will update after verification.");
