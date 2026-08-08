@@ -3,7 +3,8 @@ import { requireAgent } from "@/lib/guards";
 import { searchAgentPurchases } from "@/lib/agent/leads";
 import { PageHeader } from "@/components/admin/ui";
 import { Badge, EmptyState, ButtonLink } from "@/components/ui";
-import { formatINR, titleCase } from "@/lib/utils";
+import { titleCase } from "@/lib/utils";
+import { priceToCredits } from "@/lib/leads/pricing";
 import { LeadFiltersDrawer } from "@/components/agent/LeadFiltersDrawer";
 import { leadDisplayTitle, formatDMYTime } from "@/lib/leads/display";
 
@@ -63,35 +64,44 @@ export default async function PurchasesPage({ searchParams }: { searchParams?: P
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-navy-50/60">
                 <tr className="text-left text-xs uppercase tracking-wide text-navy-400">
+                  <th className="px-4 py-3 font-medium">Customer</th>
                   <th className="px-4 py-3 font-medium">Enquiry</th>
                   <th className="px-4 py-3 font-medium">Destination</th>
-                  <th className="px-4 py-3 font-medium">Customer</th>
                   <th className="px-4 py-3 font-medium">Purchased</th>
-                  <th className="px-4 py-3 font-medium">Price</th>
+                  <th className="px-4 py-3 font-medium">Cost</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-navy-50">
-                {result.items.map((a) => (
-                  <tr key={a.id} className="hover:bg-navy-50/40">
-                    <td className="px-4 py-3 font-semibold text-navy-800">
-                      {leadDisplayTitle({
-                        destinationText: a.lead.destinationText,
-                        destinationName: a.lead.destination?.name,
-                        tripType: a.lead.tripType,
-                        tripCategory: a.lead.tripCategory,
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-navy-700">{a.lead.destination?.name || a.lead.destinationText}</td>
-                    {/* Customer contact is safe to show HERE — this agent has already purchased this lead. */}
-                    <td className="px-4 py-3 text-navy-700">{a.lead.customerName}</td>
-                    <td className="px-4 py-3 text-navy-500">{formatDMYTime(a.purchasedAt)}</td>
-                    <td className="px-4 py-3 text-navy-700">{formatINR(a.price)}</td>
-                    <td className="px-4 py-3"><Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{titleCase(a.status)}</Badge></td>
-                    <td className="px-4 py-3"><Link href={`/agent/leads/${a.leadId}`} className="font-medium text-brand-700 hover:underline">Open</Link></td>
-                  </tr>
-                ))}
+                {result.items.map((a) => {
+                  const credits = priceToCredits(a.price);
+                  return (
+                    <tr key={a.id} className="hover:bg-navy-50/40">
+                      {/* Customer first — agents identify their leads by the person
+                          they're going to call, not by an opaque lead code. */}
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-navy-900">{a.lead.customerName}</div>
+                        <div className="text-xs text-navy-500">{a.lead.customerPhone || a.lead.customerEmail || ""}</div>
+                      </td>
+                      <td className="px-4 py-3 text-navy-700">
+                        {leadDisplayTitle({
+                          destinationText: a.lead.destinationText,
+                          destinationName: a.lead.destination?.name,
+                          tripType: a.lead.tripType,
+                          tripCategory: a.lead.tripCategory,
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-navy-700">{a.lead.destination?.name || a.lead.destinationText}</td>
+                      <td className="px-4 py-3 text-navy-500">{formatDMYTime(a.purchasedAt)}</td>
+                      <td className="px-4 py-3 font-semibold text-navy-800">
+                        {credits.toLocaleString("en-IN")} Credit{credits === 1 ? "" : "s"}
+                      </td>
+                      <td className="px-4 py-3"><Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{titleCase(a.status)}</Badge></td>
+                      <td className="px-4 py-3"><Link href={`/agent/leads/${a.leadId}`} className="font-medium text-brand-700 hover:underline">Open</Link></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

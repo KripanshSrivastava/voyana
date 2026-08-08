@@ -116,16 +116,24 @@ export function BuyLeadControls({
   const exclReason = disabledReason
     ?? (!exclusive.eligible ? "Already shared with another agent" : exclNoCredits ? `Needs ${exclusive.credits} credits` : undefined);
 
+  // Credits-only display: agents work in Lead Credits, not rupees. Showing
+  // "₹100" on the buy button caused confusion — agents felt they were about
+  // to be charged ₹100 out of pocket even though they'd already prepaid the
+  // credit package. Section 11 of the spec: never surface a rupee amount on
+  // agent-facing purchase surfaces.
+  const sharedLabel = `${shared.credits} Credit${shared.credits === 1 ? "" : "s"}`;
+  const exclusiveLabel = `${exclusive.credits} Credit${exclusive.credits === 1 ? "" : "s"}`;
+
   if (exclusiveOnly) {
     return (
       <div className={className}>
         <Button variant="brand" size="md" className="w-full" onClick={() => buy("EXCLUSIVE")} disabled={Boolean(busy) || exclDisabled}>
           {busy === "EXCLUSIVE"
             ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <><Lock className="h-4 w-4" /> Buy Exclusive — ₹{exclusive.priceInr.toLocaleString("en-IN")}</>}
+            : <><Lock className="h-4 w-4" /> Buy Exclusive · {exclusiveLabel}</>}
         </Button>
         <p className="mt-1 text-center text-[11px] text-navy-400">
-          International leads are sold exclusively · {exclusive.credits} credit{exclusive.credits === 1 ? "" : "s"} · only you
+          International leads are sold exclusively · only you
         </p>
         {disabled && disabledReason && <p className="mt-1 text-center text-xs text-navy-400">{disabledReason}</p>}
         {!disabled && exclReason && !disabledReason && <p className="mt-1 text-center text-xs text-navy-400">{exclReason}</p>}
@@ -140,17 +148,16 @@ export function BuyLeadControls({
         <Button variant="outline" size="md" onClick={() => buy("SHARED")} disabled={Boolean(busy) || disabled || sharedNoCredits}>
           {busy === "SHARED"
             ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <><ShoppingCart className="h-4 w-4" /> Buy Shared — ₹{shared.priceInr.toLocaleString("en-IN")}</>}
+            : <><ShoppingCart className="h-4 w-4" /> Buy Shared · {sharedLabel}</>}
         </Button>
         <Button variant="brand" size="md" onClick={() => buy("EXCLUSIVE")} disabled={Boolean(busy) || exclDisabled}>
           {busy === "EXCLUSIVE"
             ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <><Lock className="h-4 w-4" /> Buy Exclusive — ₹{exclusive.priceInr.toLocaleString("en-IN")}</>}
+            : <><Lock className="h-4 w-4" /> Buy Exclusive · {exclusiveLabel}</>}
         </Button>
       </div>
-      <div className="mt-1 grid grid-cols-2 gap-2 text-center text-[11px] text-navy-400">
-        <span>{shared.credits} credit{shared.credits === 1 ? "" : "s"}</span>
-        <span>{exclusive.credits} credit{exclusive.credits === 1 ? "" : "s"} · only you</span>
+      <div className="mt-1 text-center text-[11px] text-navy-400">
+        Exclusive gives you the customer alone; shared may go to other agents too.
       </div>
       {disabled && disabledReason && <p className="mt-1 text-center text-xs text-navy-400">{disabledReason}</p>}
       {!disabled && exclReason && !disabledReason && <p className="mt-1 text-center text-xs text-navy-400">Exclusive: {exclReason}</p>}
