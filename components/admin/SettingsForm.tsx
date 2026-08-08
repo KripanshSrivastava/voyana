@@ -11,6 +11,9 @@ export type SettingsValue = {
   phone: string; whatsapp: string; email: string; address: string;
   facebook: string; instagram: string; twitter: string; youtube: string;
   defaultLeadPrice: string; leadMaxAgents: string; leadExpiryHours: string;
+  leadValidityDays: string;
+  priceSharedDomestic: string; priceSharedInternational: string;
+  priceExclusiveDomestic: string; priceExclusiveInternational: string;
   footerText: string; defaultSeoTitle: string; defaultSeoDescription: string;
   gaId: string; metaPixelId: string; googleAdsId: string;
 };
@@ -37,6 +40,11 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
           phone: f.phone, whatsapp: f.whatsapp, email: f.email, address: f.address,
           socials: { facebook: f.facebook, instagram: f.instagram, twitter: f.twitter, youtube: f.youtube },
           defaultLeadPrice: Number(f.defaultLeadPrice), leadMaxAgents: Number(f.leadMaxAgents), leadExpiryHours: Number(f.leadExpiryHours),
+          leadValidityDays: Number(f.leadValidityDays),
+          priceSharedDomestic: Number(f.priceSharedDomestic),
+          priceSharedInternational: Number(f.priceSharedInternational),
+          priceExclusiveDomestic: Number(f.priceExclusiveDomestic),
+          priceExclusiveInternational: Number(f.priceExclusiveInternational),
           footerText: f.footerText, defaultSeoTitle: f.defaultSeoTitle, defaultSeoDescription: f.defaultSeoDescription,
           gaId: f.gaId, metaPixelId: f.metaPixelId, googleAdsId: f.googleAdsId,
         }),
@@ -80,9 +88,37 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
 
       <Card className="p-6 space-y-4">
         <h2 className="font-semibold text-navy-900">Lead defaults</h2>
-        <Field label="Default lead price (₹)"><Input type="number" value={f.defaultLeadPrice} onChange={(e) => set("defaultLeadPrice", e.target.value)} /></Field>
-        <Field label="Max agents per lead"><Input type="number" value={f.leadMaxAgents} onChange={(e) => set("leadMaxAgents", e.target.value)} /></Field>
-        <Field label="Lead expiry (hours)"><Input type="number" value={f.leadExpiryHours} onChange={(e) => set("leadExpiryHours", e.target.value)} /></Field>
+        <Field label="Default lead price (₹)" hint="Fallback used only when the per-type prices below don't cover a lead.">
+          <Input type="number" min={0} step={1} value={f.defaultLeadPrice} onChange={(e) => set("defaultLeadPrice", e.target.value)} />
+        </Field>
+        <Field label="Max agents per lead">
+          <Input type="number" min={1} max={10} step={1} value={f.leadMaxAgents} onChange={(e) => set("leadMaxAgents", e.target.value)} />
+        </Field>
+        <Field label="Lead validity (days)" hint="New leads expire this many days after creation. Default 365.">
+          <Input type="number" min={1} step={1} value={f.leadValidityDays} onChange={(e) => set("leadValidityDays", e.target.value)} />
+        </Field>
+        <Field label="Legacy lead expiry (hours)" hint="Only used for pre-existing leads created before Lead validity (days) was introduced.">
+          <Input type="number" min={1} step={1} value={f.leadExpiryHours} onChange={(e) => set("leadExpiryHours", e.target.value)} />
+        </Field>
+      </Card>
+
+      <Card className="p-6 space-y-4 lg:col-span-2">
+        <h2 className="font-semibold text-navy-900">Lead pricing</h2>
+        <p className="text-sm text-navy-500">Prices agents pay per lead, by lead type. Prices cannot be negative.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Shared · Domestic (₹)">
+            <Input type="number" min={0} step={1} value={f.priceSharedDomestic} onChange={(e) => set("priceSharedDomestic", e.target.value)} />
+          </Field>
+          <Field label="Shared · International (₹)">
+            <Input type="number" min={0} step={1} value={f.priceSharedInternational} onChange={(e) => set("priceSharedInternational", e.target.value)} />
+          </Field>
+          <Field label="Exclusive · Domestic (₹)">
+            <Input type="number" min={0} step={1} value={f.priceExclusiveDomestic} onChange={(e) => set("priceExclusiveDomestic", e.target.value)} />
+          </Field>
+          <Field label="Exclusive · International (₹)">
+            <Input type="number" min={0} step={1} value={f.priceExclusiveInternational} onChange={(e) => set("priceExclusiveInternational", e.target.value)} />
+          </Field>
+        </div>
       </Card>
 
       <Card className="p-6 space-y-4">

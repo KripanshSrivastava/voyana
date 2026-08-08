@@ -21,7 +21,7 @@ const BASE_NAV = [
   { href: "/agent/settings", label: "Settings", icon: Settings },
 ];
 const ADS_NAV = { href: "/agent/ads", label: "My Ads", icon: Megaphone };
-const SUBMISSIONS_NAV = { href: "/agent/submissions", label: "Submissions", icon: FilePlus2 };
+const SUBMISSIONS_NAV = { href: "/agent/submissions", label: "Add Your Package", icon: FilePlus2 };
 
 export function AgentShell({
   name,

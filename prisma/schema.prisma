@@ -694,9 +694,16 @@ model SiteSetting {
   email              String?
   address            String?
   socials            String? // JSON
-  defaultLeadPrice   Int    @default(750)
-  leadMaxAgents      Int    @default(2)
-  leadExpiryHours    Int    @default(72)
+  defaultLeadPrice   Int    @default(750)   // Legacy: single price used before per-type pricing existed. Kept as a fallback when the more specific fields below aren't set. Never negative.
+  leadMaxAgents      Int    @default(2)     // How many agents a shared lead may be sold to.
+  leadExpiryHours    Int    @default(72)    // Legacy hours-based expiry. Only used if leadValidityDays is unset. New leads use leadValidityDays.
+  leadValidityDays   Int    @default(365)   // New default lead validity — 365 days from creation.
+  // Per-type purchase pricing (₹). All must be >= 0. Enforced in
+  // lib/validation.ts::settingsSchema and in the admin API route.
+  priceSharedDomestic     Int @default(100)
+  priceSharedInternational Int @default(100)
+  priceExclusiveDomestic     Int @default(200)
+  priceExclusiveInternational Int @default(200)
   footerText         String?
   defaultSeoTitle    String?
   defaultSeoDescription String?

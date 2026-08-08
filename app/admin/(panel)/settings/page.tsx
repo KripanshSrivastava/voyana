@@ -18,6 +18,11 @@ export default async function SettingsPage() {
     phone: s.phone ?? "", whatsapp: s.whatsapp ?? "", email: s.email ?? "", address: s.address ?? "",
     facebook: socials.facebook ?? "", instagram: socials.instagram ?? "", twitter: socials.twitter ?? "", youtube: socials.youtube ?? "",
     defaultLeadPrice: String(s.defaultLeadPrice), leadMaxAgents: String(s.leadMaxAgents), leadExpiryHours: String(s.leadExpiryHours),
+    leadValidityDays: String(s.leadValidityDays),
+    priceSharedDomestic: String(s.priceSharedDomestic),
+    priceSharedInternational: String(s.priceSharedInternational),
+    priceExclusiveDomestic: String(s.priceExclusiveDomestic),
+    priceExclusiveInternational: String(s.priceExclusiveInternational),
     footerText: s.footerText ?? "", defaultSeoTitle: s.defaultSeoTitle ?? "", defaultSeoDescription: s.defaultSeoDescription ?? "",
     gaId: s.gaId ?? "", metaPixelId: s.metaPixelId ?? "", googleAdsId: s.googleAdsId ?? "",
   };

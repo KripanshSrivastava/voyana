@@ -9,10 +9,16 @@ import { agentLeadPurchased } from "@/lib/email/templates";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const POST = handler(async (_req: Request, ctx: Ctx) => {
+export const POST = handler(async (req: Request, ctx: Ctx) => {
   const session = await requireRole("AGENT");
   if (!session.agentId) return fail("Agent profile missing.", 403);
   const { id } = await ctx.params;
+
+  // Client picks the purchase type; server validates + enforces the price.
+  // Never trust a `price` field from the client — pricing.ts computes it
+  // from admin settings and the lead's own type.
+  const body = await req.json().catch(() => ({}));
+  const purchaseType = body?.purchaseType === "EXCLUSIVE" ? "EXCLUSIVE" : "SHARED";
 
   try {
     const result = await purchaseLead({
@@ -20,10 +26,11 @@ export const POST = handler(async (_req: Request, ctx: Ctx) => {
       agentId: session.agentId,
       actor: "AGENT",
       actorLabel: session.name,
+      purchaseType,
     });
 
     // Best-effort side effects (never fail the purchase).
-    await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "lead.purchase", entityType: "lead", entityId: id, metadata: { price: result.price } });
+    await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "lead.purchase", entityType: "lead", entityId: id, metadata: { price: result.price, purchaseType: result.purchaseType } });
     try {
       const lead = await prisma.lead.findUnique({ where: { id }, select: { code: true, destinationText: true } });
       if (lead) {

@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "../db";
 import { purchaseLead } from "./purchase";
 import { leadMatches, autoBuyCriteria } from "./matching";
+import { requiresExclusive } from "./pricing";
 import { notify } from "../notify";
 import { logAudit } from "../audit";
 import { sendEmail } from "../email/mailer";
@@ -19,6 +20,11 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead || lead.price == null || lead.price <= 0) return;
     if (lead.assignmentCount >= lead.maxAgents) return;
+
+    // Auto-buy only ever does SHARED purchases (see purchaseLead call below).
+    // Exclusive-only lead types (INTERNATIONAL) therefore can't be auto-bought —
+    // an agent must click Buy Exclusive themselves. Skip the whole prefs loop.
+    if (requiresExclusive(lead.tripCategory)) return;
 
     const prefs = await prisma.agentPreference.findMany({
       where: { autoBuyEnabled: true },
@@ -49,8 +55,14 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
 
       // --- Purchase via the shared atomic transaction ---
       try {
-        await purchaseLead({ leadId, agentId: agent.id, actor: "AGENT", actorLabel: `${agent.companyName} (auto-buy)` });
-        await notify({ userId: agent.userId, type: "purchase", title: `Auto-purchased lead ${lead.code}`, body: `${lead.destinationText} · ₹${price.toLocaleString("en-IN")}. Customer details are now available.`, href: `/agent/leads/${leadId}` });
+        // Auto-buy is always SHARED — buying exclusive on an agent's behalf
+        // without their per-lead consent would be too aggressive. Agents who
+        // want exclusive click the button themselves.
+        const purchase = await purchaseLead({ leadId, agentId: agent.id, actor: "AGENT", actorLabel: `${agent.companyName} (auto-buy)`, purchaseType: "SHARED" });
+        // Use the server-computed price from the purchase result — the local
+        // `price` variable was read from lead.price which may be stale.
+        const charged = purchase.price;
+        await notify({ userId: agent.userId, type: "purchase", title: `Auto-purchased lead ${lead.code}`, body: `${lead.destinationText} · ₹${charged.toLocaleString("en-IN")}. Customer details are now available.`, href: `/agent/leads/${leadId}` });
         if (agent.user.email) {
           try {
             await sendEmail({
@@ -59,7 +71,7 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
                 agentName: agent.user.name,
                 code: lead.code,
                 destination: lead.destinationText,
-                price,
+                price: charged,
                 travelDate: lead.travelDate ? lead.travelDate.toISOString().slice(0, 10) : lead.travelDateText ?? null,
                 travelers: lead.travelers ?? null,
                 budget: lead.budget ?? null,
@@ -71,7 +83,7 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
             console.error("[autobuy] email failed (non-fatal)", e);
           }
         }
-        await logAudit({ actorType: "SYSTEM", action: "lead.autobuy", entityType: "lead", entityId: leadId, metadata: { agentId: agent.id, price } });
+        await logAudit({ actorType: "SYSTEM", action: "lead.autobuy", entityType: "lead", entityId: leadId, metadata: { agentId: agent.id, price: charged } });
       } catch {
         // Race lost, insufficient funds at commit, cap filled — skip this agent.
       }

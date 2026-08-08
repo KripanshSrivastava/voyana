@@ -35,7 +35,10 @@ export const POST = handler(async (req: Request) => {
     utmSource: d.source || "manual",
   });
 
-  const expiresAt = new Date(Date.now() + settings.leadExpiryHours * 60 * 60 * 1000);
+  const validityMs = settings.leadValidityDays > 0
+    ? settings.leadValidityDays * 24 * 60 * 60 * 1000
+    : settings.leadExpiryHours * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + validityMs);
 
   for (let attempt = 0; attempt < 4; attempt++) {
     const code = await generateLeadCode();

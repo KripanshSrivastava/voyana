@@ -1,7 +1,13 @@
 import { prisma } from "../db";
 import type { Prisma } from "@prisma/client";
 
-const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED", "IN_PROGRESS"];
+// Statuses that mean "an agent can still buy this lead."
+// IN_PROGRESS is deliberately excluded: purchaseLead() sets that status the
+// moment a lead becomes fully distributed (last shared slot taken, OR any
+// exclusive purchase — which jumps assignmentCount straight to maxAgents).
+// Including it here would show unbuyable leads in the marketplace and inflate
+// the paginated total. See lib/leads/purchase.ts for the status transition.
+const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED"];
 
 type AvailableLeadItem = Prisma.LeadGetPayload<{
   include: { _count: { select: { assignments: true } }; destination: { select: { name: true } } };

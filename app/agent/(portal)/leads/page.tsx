@@ -2,8 +2,10 @@ import Link from "next/link";
 import { MapPin, Calendar, Users, IndianRupee, Tag, Lock } from "lucide-react";
 import { requireAgent } from "@/lib/guards";
 import { searchAvailableLeads } from "@/lib/agent/leads";
+import { getSiteSettings } from "@/lib/settings";
+import { computeLeadCharge, exclusiveEligible, requiresExclusive } from "@/lib/leads/pricing";
 import { PageHeader } from "@/components/admin/ui";
-import { BuyButton } from "@/components/agent/AgentControls";
+import { BuyLeadControls } from "@/components/agent/AgentControls";
 import { Badge, EmptyState } from "@/components/ui";
 import { formatINR, formatDate } from "@/lib/utils";
 import { LeadFiltersDrawer } from "@/components/agent/LeadFiltersDrawer";
@@ -42,7 +44,10 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
     page: toNumber(paramValue(sp, "page")) ?? 1,
     limit: toNumber(paramValue(sp, "limit")) ?? 20,
   };
-  const result = await searchAvailableLeads(agent.id, filters);
+  const [result, settings] = await Promise.all([
+    searchAvailableLeads(agent.id, filters),
+    getSiteSettings(),
+  ]);
   const canBuy = agent.status === "APPROVED";
   const credits = agent.creditBalance?.balance ?? 0;
   const params = new URLSearchParams();
@@ -53,7 +58,7 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
 
   return (
     <div>
-      <PageHeader title="Available leads" subtitle="Preview matching leads. Purchase requires 1 Lead Credit and unlocks contact details." />
+      <PageHeader title="Available leads" subtitle="Preview matching leads. Buy Shared to add the lead to your marketplace, or Buy Exclusive to lock it to you alone." />
       <div className="mb-5 rounded-2xl border border-navy-100 bg-white px-4 py-3 text-sm font-semibold text-navy-800 shadow-sm">
         Lead Credits: {credits.toLocaleString("en-IN")}
         {credits === 0 && <Link href="/agent/wallet" className="ml-3 text-brand-700 hover:underline">Buy Credits</Link>}
@@ -66,16 +71,19 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
         <>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {result.items.map((l) => {
-            const price = l.price ?? 0;
+            const shared = computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "SHARED", settings });
+            const exclusive = computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "EXCLUSIVE", settings });
             const full = l._count.assignments >= l.maxAgents;
-            const insufficient = credits < 1;
-            const disabled = !canBuy || full || insufficient;
-            const reason = !canBuy ? "Account not approved" : full ? "Fully distributed" : insufficient ? "Lead Credits required" : undefined;
+            const canExclusive = exclusiveEligible(l._count.assignments);
+            const exclusiveOnly = requiresExclusive(l.tripCategory);
+            const isIntl = l.tripCategory === "INTERNATIONAL";
             return (
               <div key={l.id} className="flex flex-col rounded-2xl border border-navy-100 bg-white p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <Link href={`/agent/leads/${l.id}`} className="text-sm font-semibold text-brand-700 hover:underline">{l.code}</Link>
-                  <Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{l.tripCategory ?? "Trip"}</Badge>
+                  <Badge className={isIntl ? "bg-brand-50 text-brand-700 ring-brand-500/20" : "bg-navy-100 text-navy-700 ring-navy-500/20"}>
+                    {isIntl ? "International Lead" : l.tripCategory ? `${l.tripCategory.charAt(0)}${l.tripCategory.slice(1).toLowerCase()} Lead` : "Trip"}
+                  </Badge>
                 </div>
                 <div className="space-y-2 text-sm">
                   <Row icon={<MapPin className="h-4 w-4" />} label="Destination" value={l.destination?.name || l.destinationText} />
@@ -89,19 +97,27 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
                   <Lock className="h-3.5 w-3.5" /> Contact details unlock after purchase
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3">
                   <Badge className={full ? "bg-rose-50 text-rose-700 ring-rose-600/20" : "bg-teal-50 text-teal-700 ring-teal-600/20"}>
                     {l._count.assignments}/{l.maxAgents} sold
                   </Badge>
-                  <span className="text-lg font-bold text-navy-900">1 Credit</span>
                 </div>
 
                 {credits === 0 ? (
                   <Link href="/agent/wallet" className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
-                    Buy 100 Credits
+                    Buy Lead Credits
                   </Link>
                 ) : (
-                  <BuyButton leadId={l.id} price={price} disabled={disabled} disabledReason={reason} className="mt-4" />
+                  <BuyLeadControls
+                    leadId={l.id}
+                    className="mt-4"
+                    shared={{ priceInr: shared.priceInr, credits: shared.credits }}
+                    exclusive={{ priceInr: exclusive.priceInr, credits: exclusive.credits, eligible: canExclusive }}
+                    exclusiveOnly={exclusiveOnly}
+                    disabled={!canBuy || full}
+                    disabledReason={!canBuy ? "Account not approved" : full ? "Fully distributed" : undefined}
+                    creditsAvailable={credits}
+                  />
                 )}
               </div>
             );

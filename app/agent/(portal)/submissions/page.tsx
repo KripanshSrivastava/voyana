@@ -20,7 +20,7 @@ export default async function AgentSubmissionsPage() {
   if (!flags.packageMarketplaceEnabled) {
     return (
       <div>
-        <PageHeader title="Submissions" subtitle="Propose destinations, tours and packages." />
+        <PageHeader title="Add Your Package, Destination or Tour" subtitle="Create a package, destination experience, or tour to showcase to travelers." />
         <Card className="p-6 text-sm text-navy-500">Content submissions aren&apos;t available yet. The Moksh Booking team will enable it soon.</Card>
       </div>
     );
@@ -39,7 +39,7 @@ export default async function AgentSubmissionsPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title="Submissions" subtitle="Propose destinations, tours and packages — an admin reviews before anything goes live." />
+      <PageHeader title="Add Your Package, Destination or Tour" subtitle="Create a package, destination experience, or tour to showcase to travelers. An admin reviews before anything goes live." />
       <SubmissionForm destinations={availableDestinations} />
       <Card className="p-6">
         <h2 className="mb-4 font-semibold text-navy-900">Your submissions</h2>

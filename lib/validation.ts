@@ -235,9 +235,17 @@ export const settingsSchema = z.object({
     twitter: z.string().optional().or(z.literal("")),
     youtube: z.string().optional().or(z.literal("")),
   }).optional(),
-  defaultLeadPrice: z.coerce.number().int().min(0),
+  defaultLeadPrice: z.coerce.number().int().min(0, "Price cannot be negative."),
   leadMaxAgents: z.coerce.number().int().min(1).max(10),
   leadExpiryHours: z.coerce.number().int().min(1),
+  leadValidityDays: z.coerce.number().int().min(1, "Validity must be at least 1 day.").max(3650),
+  // Per-type lead pricing. All must be non-negative — enforced here (server)
+  // AND on the input elements (client) so the UI can never submit a negative
+  // value. Backend validation is the source of truth.
+  priceSharedDomestic: z.coerce.number().int().min(0, "Price cannot be negative."),
+  priceSharedInternational: z.coerce.number().int().min(0, "Price cannot be negative."),
+  priceExclusiveDomestic: z.coerce.number().int().min(0, "Price cannot be negative."),
+  priceExclusiveInternational: z.coerce.number().int().min(0, "Price cannot be negative."),
   footerText: z.string().max(500).optional().or(z.literal("")),
   defaultSeoTitle: z.string().max(200).optional().or(z.literal("")),
   defaultSeoDescription: z.string().max(400).optional().or(z.literal("")),

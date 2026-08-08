@@ -121,7 +121,11 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
   }
 
   const a = input.attribution ?? {};
-  const expiresAt = new Date(Date.now() + settings.leadExpiryHours * 60 * 60 * 1000);
+  // Prefer the newer day-based setting; fall back to legacy hours if unset/zero.
+  const validityMs = settings.leadValidityDays > 0
+    ? settings.leadValidityDays * 24 * 60 * 60 * 1000
+    : settings.leadExpiryHours * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + validityMs);
   const status = input.status ?? "NEW";
 
   let created: { id: string; code: string } | null = null;
