@@ -35,9 +35,15 @@ export function AdForm() {
           <Field label="Destination"><Input value={f.destination} onChange={(e) => set("destination", e.target.value)} /></Field>
           <Field label="Target client location"><Input value={f.clientLocation} onChange={(e) => set("clientLocation", e.target.value)} /></Field>
           <Field label="Category"><Select value={f.category} onChange={(e) => set("category", e.target.value)}><option value="">—</option>{TRIP_CATEGORIES.map((c) => <option key={c} value={c}>{titleCase(c)}</option>)}</Select></Field>
-          <Field label="Landing URL"><Input value={f.landingUrl} onChange={(e) => set("landingUrl", e.target.value)} placeholder="https://" /></Field>
-          <Field label="Daily budget (₹)"><Input type="number" value={f.dailyBudget} onChange={(e) => set("dailyBudget", e.target.value)} /></Field>
-          <Field label="Maximum bid (₹)"><Input type="number" value={f.maxBid} onChange={(e) => set("maxBid", e.target.value)} /></Field>
+          <Field label="Landing URL" hint="Full URL including https:// — travellers who click your ad land here.">
+            <Input type="url" value={f.landingUrl} onChange={(e) => set("landingUrl", e.target.value)} placeholder="https://mokshbooking.app/..." />
+          </Field>
+          <Field label="Daily budget (₹)">
+            <Input type="number" min={0} step={1} value={f.dailyBudget} onChange={(e) => set("dailyBudget", e.target.value)} />
+          </Field>
+          <Field label="Maximum bid (₹)" hint="The highest amount you'll pay for one click on this ad.">
+            <Input type="number" min={0} step={1} value={f.maxBid} onChange={(e) => set("maxBid", e.target.value)} />
+          </Field>
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <div className="flex gap-2">

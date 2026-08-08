@@ -33,6 +33,20 @@ export const PATCH = handler(async (req: Request) => {
   const displayOrder = int(body.displayOrder);
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const isActive = Boolean(body.isActive);
+  // Payment QR URL: uploaded via /api/admin/media, we only store the URL.
+  // Validated as http(s) so no javascript: URIs can sneak in when the img
+  // is rendered on the agent-facing purchase page.
+  let paymentQrUrl: string | null = null;
+  if (typeof body.paymentQrUrl === "string" && body.paymentQrUrl.trim().length > 0) {
+    const raw = body.paymentQrUrl.trim();
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return fail("Payment QR URL must start with https://.", 422);
+      paymentQrUrl = parsed.toString().slice(0, 500);
+    } catch {
+      return fail("Payment QR URL is not a valid URL.", 422);
+    }
+  }
 
   if (!name) return fail("Package name is required.", 422);
   if (!Number.isInteger(credits) || credits <= 0) return fail("Enter a valid credit quantity.", 422);
@@ -46,9 +60,9 @@ export const PATCH = handler(async (req: Request) => {
 
   const pkg = await prisma.leadCreditPackage.update({
     where: { id },
-    data: { name, credits, priceInr, isActive, displayOrder },
+    data: { name, credits, priceInr, isActive, displayOrder, paymentQrUrl },
   });
 
-  await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "credits.package.update", entityType: "wallet", entityId: id, metadata: { name, credits, priceInr, isActive, displayOrder } });
+  await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "credits.package.update", entityType: "wallet", entityId: id, metadata: { name, credits, priceInr, isActive, displayOrder, hasQr: Boolean(paymentQrUrl) } });
   return ok({ package: pkg });
 });

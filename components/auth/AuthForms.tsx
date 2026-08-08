@@ -85,6 +85,13 @@ export function LoginForm({
         <Field label="Password">
           <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </Field>
+        {role === "AGENT" && (
+          <div className="-mt-2 text-right">
+            <Link href="/agent/forgot-password" className="text-sm text-brand-700 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+        )}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <Button type="submit" variant="brand" size="lg" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}

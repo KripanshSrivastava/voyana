@@ -19,7 +19,7 @@ export default async function AdminPricingPage() {
     prisma.leadCreditLedger.aggregate({ _sum: { creditAmount: true }, where: { type: "CREDIT_PURCHASE" } }),
     prisma.leadCreditLedger.aggregate({ _sum: { creditAmount: true }, where: { type: "LEAD_PURCHASE" } }),
     prisma.agentCreditBalance.aggregate({ _sum: { balance: true } }),
-    prisma.leadCreditPurchase.aggregate({ _sum: { priceInr: true }, where: { status: "PAID" } }),
+    prisma.leadCreditPurchase.aggregate({ _sum: { priceInr: true }, where: { status: { in: ["PAID", "APPROVED"] } } }),
   ]);
 
   const usedCredits = Math.abs(used._sum.creditAmount ?? 0);

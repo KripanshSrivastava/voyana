@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { MapPin, Calendar, Users, IndianRupee, Tag, Lock } from "lucide-react";
 import { requireAgent } from "@/lib/guards";
 import { searchAvailableLeads } from "@/lib/agent/leads";
 import { getSiteSettings } from "@/lib/settings";
 import { computeLeadCharge, exclusiveEligible, requiresExclusive } from "@/lib/leads/pricing";
 import { PageHeader } from "@/components/admin/ui";
-import { BuyLeadControls } from "@/components/agent/AgentControls";
-import { Badge, EmptyState } from "@/components/ui";
-import { formatINR, formatDate } from "@/lib/utils";
+import { EmptyState } from "@/components/ui";
 import { LeadFiltersDrawer } from "@/components/agent/LeadFiltersDrawer";
+import { AvailableLeadCard } from "@/components/agent/AvailableLeadCard";
 
 function paramValue(searchParams: Record<string, string | string[] | undefined> | undefined, key: string) {
   const value = searchParams?.[key];
@@ -70,71 +68,40 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
       ) : (
         <>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {result.items.map((l) => {
-            const shared = computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "SHARED", settings });
-            const exclusive = computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "EXCLUSIVE", settings });
-            const full = l._count.assignments >= l.maxAgents;
-            const canExclusive = exclusiveEligible(l._count.assignments);
-            const exclusiveOnly = requiresExclusive(l.tripCategory);
-            const isIntl = l.tripCategory === "INTERNATIONAL";
-            return (
-              <div key={l.id} className="flex flex-col rounded-2xl border border-navy-100 bg-white p-5 shadow-sm">
-                <div className="mb-3 flex items-center justify-between">
-                  <Link href={`/agent/leads/${l.id}`} className="text-sm font-semibold text-brand-700 hover:underline">{l.code}</Link>
-                  <Badge className={isIntl ? "bg-brand-50 text-brand-700 ring-brand-500/20" : "bg-navy-100 text-navy-700 ring-navy-500/20"}>
-                    {isIntl ? "International Lead" : l.tripCategory ? `${l.tripCategory.charAt(0)}${l.tripCategory.slice(1).toLowerCase()} Lead` : "Trip"}
-                  </Badge>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <Row icon={<MapPin className="h-4 w-4" />} label="Destination" value={l.destination?.name || l.destinationText} />
-                  <Row icon={<Calendar className="h-4 w-4" />} label="Travel" value={l.travelDate ? formatDate(l.travelDate) : l.travelDateText || "Flexible"} />
-                  <Row icon={<Users className="h-4 w-4" />} label="Travelers" value={l.travelers?.toString() || "—"} />
-                  <Row icon={<IndianRupee className="h-4 w-4" />} label="Budget" value={l.budget ? formatINR(l.budget) : "—"} />
-                  <Row icon={<Tag className="h-4 w-4" />} label="Trip type" value={l.tripType || "—"} />
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-navy-50 px-3 py-2 text-xs text-navy-500">
-                  <Lock className="h-3.5 w-3.5" /> Contact details unlock after purchase
-                </div>
-
-                <div className="mt-3">
-                  <Badge className={full ? "bg-rose-50 text-rose-700 ring-rose-600/20" : "bg-teal-50 text-teal-700 ring-teal-600/20"}>
-                    {l._count.assignments}/{l.maxAgents} sold
-                  </Badge>
-                </div>
-
-                {credits === 0 ? (
-                  <Link href="/agent/wallet" className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
-                    Buy Lead Credits
-                  </Link>
-                ) : (
-                  <BuyLeadControls
-                    leadId={l.id}
-                    className="mt-4"
-                    shared={{ priceInr: shared.priceInr, credits: shared.credits }}
-                    exclusive={{ priceInr: exclusive.priceInr, credits: exclusive.credits, eligible: canExclusive }}
-                    exclusiveOnly={exclusiveOnly}
-                    disabled={!canBuy || full}
-                    disabledReason={!canBuy ? "Account not approved" : full ? "Fully distributed" : undefined}
-                    creditsAvailable={credits}
-                  />
-                )}
-              </div>
-            );
-          })}
+          {result.items.map((l) => (
+            <AvailableLeadCard
+              key={l.id}
+              lead={{
+                id: l.id,
+                destinationText: l.destinationText,
+                destinationName: l.destination?.name ?? null,
+                tripType: l.tripType,
+                tripCategory: l.tripCategory,
+                travelers: l.travelers,
+                adults: l.adults,
+                children: l.children,
+                nights: l.nights,
+                requirements: l.requirements,
+                travelDate: l.travelDate,
+                travelDateText: l.travelDateText,
+                createdAt: l.createdAt,
+                assignmentCount: l._count.assignments,
+                maxAgents: l.maxAgents,
+              }}
+              shared={computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "SHARED", settings })}
+              exclusive={{
+                ...computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "EXCLUSIVE", settings }),
+                eligible: exclusiveEligible(l._count.assignments),
+              }}
+              exclusiveOnly={requiresExclusive(l.tripCategory)}
+              canBuy={canBuy}
+              creditsAvailable={credits}
+            />
+          ))}
         </div>
         <Pagination basePath="/agent/leads" params={params} page={result.page} totalPages={result.totalPages} total={result.total} />
         </>
       )}
-    </div>
-  );
-}
-
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-1.5 text-navy-400">{icon} {label}</span>
-      <span className="font-medium text-navy-800">{value}</span>
     </div>
   );
 }

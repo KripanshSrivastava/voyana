@@ -21,6 +21,7 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: React
       { href: "/admin/agents", label: "Agents", icon: Users },
       { href: "/admin/wallets", label: "Wallets", icon: Wallet },
       { href: "/admin/pricing", label: "Pricing", icon: Wallet },
+      { href: "/admin/credit-orders", label: "Credit Orders", icon: Wallet },
       { href: "/admin/revenue", label: "Revenue", icon: TrendingUp },
       { href: "/admin/campaigns", label: "Marketing", icon: Megaphone },
       { href: "/admin/spam-reports", label: "Spam Reports", icon: LifeBuoy },

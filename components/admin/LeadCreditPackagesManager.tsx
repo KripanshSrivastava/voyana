@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
+import { SingleImage } from "@/components/admin/ImageUploader";
 import { formatINR } from "@/lib/utils";
 
 type PackageRow = {
@@ -13,6 +14,7 @@ type PackageRow = {
   priceInr: number;
   isActive: boolean;
   displayOrder: number;
+  paymentQrUrl?: string | null;
 };
 
 export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[] }) {
@@ -47,7 +49,8 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-sm">
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-sm">
       <table className="w-full text-sm">
         <thead className="bg-navy-50/60">
           <tr className="text-left text-xs uppercase tracking-wide text-navy-400">
@@ -83,6 +86,33 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
         </tbody>
       </table>
       {message && <div className="border-t border-navy-100 px-4 py-3 text-sm text-navy-600">{message}</div>}
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={`qr-${row.id}`} className="rounded-2xl border border-navy-100 bg-white p-5 shadow-sm">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-navy-900">{row.name} — Payment QR</h3>
+              <p className="text-xs text-navy-500">Shown to agents on the payment screen for this plan. Replace anytime.</p>
+            </div>
+            <SingleImage
+              value={row.paymentQrUrl ?? ""}
+              onChange={(v) => set(row.id, "paymentQrUrl", v || null)}
+              folder="payment-qr"
+              label=""
+            />
+            <Button
+              variant="brand"
+              size="sm"
+              className="mt-3"
+              onClick={() => save(row)}
+              disabled={busy === row.id}
+            >
+              {busy === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save QR"}
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

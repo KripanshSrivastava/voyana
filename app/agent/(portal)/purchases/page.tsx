@@ -3,8 +3,9 @@ import { requireAgent } from "@/lib/guards";
 import { searchAgentPurchases } from "@/lib/agent/leads";
 import { PageHeader } from "@/components/admin/ui";
 import { Badge, EmptyState, ButtonLink } from "@/components/ui";
-import { formatINR, formatDate, titleCase } from "@/lib/utils";
+import { formatINR, titleCase } from "@/lib/utils";
 import { LeadFiltersDrawer } from "@/components/agent/LeadFiltersDrawer";
+import { leadDisplayTitle, formatDMYTime } from "@/lib/leads/display";
 
 function paramValue(searchParams: Record<string, string | string[] | undefined> | undefined, key: string) {
   const value = searchParams?.[key];
@@ -51,7 +52,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams?: P
 
   return (
     <div>
-      <PageHeader title="My leads" subtitle="Leads you've purchased. Update status as you work them." />
+      <PageHeader title="My leads" subtitle="Leads you've purchased. Only you can see this list — other agents' purchases are never shown here." />
       <LeadFiltersDrawer mode="my" values={Object.fromEntries(Object.entries(filters).map(([k, v]) => [k, v == null ? "" : String(v)]))} count={result.total} />
       {result.items.length === 0 ? (
         <EmptyState title="No leads found" description="Try clearing filters or buy a lead from the marketplace to get started." action={<ButtonLink href="/agent/leads" variant="brand">Browse leads</ButtonLink>} />
@@ -62,7 +63,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams?: P
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-navy-50/60">
                 <tr className="text-left text-xs uppercase tracking-wide text-navy-400">
-                  <th className="px-4 py-3 font-medium">Lead</th>
+                  <th className="px-4 py-3 font-medium">Enquiry</th>
                   <th className="px-4 py-3 font-medium">Destination</th>
                   <th className="px-4 py-3 font-medium">Customer</th>
                   <th className="px-4 py-3 font-medium">Purchased</th>
@@ -74,10 +75,18 @@ export default async function PurchasesPage({ searchParams }: { searchParams?: P
               <tbody className="divide-y divide-navy-50">
                 {result.items.map((a) => (
                   <tr key={a.id} className="hover:bg-navy-50/40">
-                    <td className="px-4 py-3 font-semibold text-navy-800">{a.lead.code}</td>
+                    <td className="px-4 py-3 font-semibold text-navy-800">
+                      {leadDisplayTitle({
+                        destinationText: a.lead.destinationText,
+                        destinationName: a.lead.destination?.name,
+                        tripType: a.lead.tripType,
+                        tripCategory: a.lead.tripCategory,
+                      })}
+                    </td>
                     <td className="px-4 py-3 text-navy-700">{a.lead.destination?.name || a.lead.destinationText}</td>
+                    {/* Customer contact is safe to show HERE — this agent has already purchased this lead. */}
                     <td className="px-4 py-3 text-navy-700">{a.lead.customerName}</td>
-                    <td className="px-4 py-3 text-navy-500">{formatDate(a.purchasedAt)}</td>
+                    <td className="px-4 py-3 text-navy-500">{formatDMYTime(a.purchasedAt)}</td>
                     <td className="px-4 py-3 text-navy-700">{formatINR(a.price)}</td>
                     <td className="px-4 py-3"><Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{titleCase(a.status)}</Badge></td>
                     <td className="px-4 py-3"><Link href={`/agent/leads/${a.leadId}`} className="font-medium text-brand-700 hover:underline">Open</Link></td>

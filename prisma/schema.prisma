@@ -301,6 +301,10 @@ model LeadCreditPackage {
   priceInr     Int
   isActive     Boolean  @default(true)
   displayOrder Int      @default(0)
+  // Per-plan QR image the agent scans during manual payment. Configured
+  // by admin via /admin/pricing. Optional — when unset, the agent flow
+  // shows a "QR not yet configured" state instead of a broken image.
+  paymentQrUrl String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -320,13 +324,27 @@ model LeadCreditPurchase {
   credits         Int
   priceInr        Int
   currency        String   @default("INR")
-  provider        String   @default("razorpay")
-  orderId         String   @unique
+  // "manual" for the QR-upload flow (default). Historical Razorpay-flavored
+  // orders may still carry provider = "razorpay". The approval flow only
+  // runs for provider = "manual".
+  provider        String   @default("manual")
+  orderId         String   @unique // e.g. MKB-20260808-000123 for manual orders
   paymentId       String?
-  status          String   @default("CREATED") // CREATED | PAID | FAILED
-  createdAt       DateTime @default(now())
-  paidAt          DateTime?
-  updatedAt       DateTime @updatedAt
+  // Manual-payment flow additions. status values for manual orders:
+  //   PENDING_REVIEW  — agent submitted screenshot, awaiting admin
+  //   APPROVED        — admin approved, credits added
+  //   REJECTED        — admin rejected, no credits added
+  //   CANCELLED       — agent (or system) cancelled before review
+  // Legacy Razorpay orders continue to use: CREATED | PAID | FAILED.
+  status              String   @default("CREATED")
+  paymentScreenshotUrl String? // Supabase Storage URL, admin-only view
+  transactionReference String? // UPI/bank ref number, user-provided
+  reviewedById         String? // User.id of admin who approved/rejected
+  reviewedAt           DateTime?
+  rejectionReason      String?
+  createdAt            DateTime @default(now())
+  paidAt               DateTime? // set on APPROVED
+  updatedAt            DateTime @updatedAt
 
   walletTopup WalletTopup?
 
@@ -374,7 +392,10 @@ model Lead {
   departureCity   String?
   travelDate      DateTime?
   travelDateText  String?
-  travelers       Int?
+  travelers       Int?    // Total headcount if the enquiry didn't split by age
+  adults          Int?    // Adult headcount (optional; leads that predate this field only have `travelers`)
+  children        Int?    // Child headcount (same as above)
+  nights          Int?    // Trip length in nights, when the enquiry captured it explicitly
   budget          Int?
   tripType        String?
   requirements    String? // JSON array of strings

@@ -28,6 +28,9 @@ export type IngestInput = {
   travelDate?: Date | string | null;
   travelDateText?: string | null;
   travelers?: number | null;
+  adults?: number | null;
+  children?: number | null;
+  nights?: number | null;
   budget?: number | null;
   tripType?: string | null;
   requirements?: string[];
@@ -144,6 +147,9 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
           travelDate,
           travelDateText: input.travelDateText || null,
           travelers: input.travelers ?? null,
+          adults: input.adults ?? null,
+          children: input.children ?? null,
+          nights: input.nights ?? null,
           budget: input.budget ?? null,
           tripType: input.tripType || null,
           requirements: JSON.stringify(requirements),

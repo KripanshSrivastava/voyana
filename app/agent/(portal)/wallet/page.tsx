@@ -2,7 +2,7 @@ import { requireAgent } from "@/lib/guards";
 import { prisma } from "@/lib/db";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { Card, EmptyState } from "@/components/ui";
-import { AddMoney } from "@/components/agent/AddMoney";
+import { BuyCreditsManual } from "@/components/agent/BuyCreditsManual";
 import { formatINR, formatDateTime } from "@/lib/utils";
 
 export default async function WalletPage() {
@@ -29,16 +29,24 @@ export default async function WalletPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <StatCard label="Lead Credits" value={credits.toLocaleString("en-IN")} accent="brand" />
         <StatCard label="Credits Used" value={Math.abs(used._sum.creditAmount ?? 0).toLocaleString("en-IN")} accent="navy" />
-        <StatCard label="Packages Purchased" value={purchases.filter((p) => p.status === "PAID").length} accent="emerald" />
+        <StatCard label="Packages Purchased" value={purchases.filter((p) => p.status === "PAID" || p.status === "APPROVED").length} accent="emerald" />
       </div>
 
       <Card className="mb-6 p-6">
         <h2 className="mb-1 font-semibold text-navy-900">Get More Travel Leads</h2>
-        <p className="mb-5 text-sm text-navy-500">Choose your Lead Credit Package</p>
+        <p className="mb-5 text-sm text-navy-500">Choose your Lead Credit Package — pay via UPI QR and upload proof; credits are added after admin review.</p>
         {packages.length === 0 ? (
           <EmptyState title="No packages available" description="The Moksh Booking team is updating Lead Credit packages." />
         ) : (
-          <AddMoney packages={packages} />
+          <BuyCreditsManual
+            packages={packages.map((p) => ({
+              id: p.id,
+              name: p.name,
+              credits: p.credits,
+              priceInr: p.priceInr,
+              paymentQrUrl: p.paymentQrUrl ?? null,
+            }))}
+          />
         )}
       </Card>
 

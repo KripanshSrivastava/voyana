@@ -171,6 +171,20 @@ export function supportTicketReply(p: { name: string; ticketRef: string; url: st
   };
 }
 
+export function passwordResetEmail(p: { name: string; link: string; expiresMinutes: number }) {
+  // NEVER put the raw token in log output — the link itself contains it.
+  // This template renders it inside an <a href> only; nothing else logs `p.link`.
+  return {
+    subject: `Reset your ${BRAND} password`,
+    html: shell("Reset your password", `
+      <p>Hi ${escapeHtml(p.name)},</p>
+      <p>We received a request to reset your ${BRAND} password. Click the button below to choose a new one. This link expires in ${p.expiresMinutes} minutes and can only be used once.</p>
+      <p style="margin:20px 0"><a href="${p.link}" style="background:#0f1e38;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:600">Reset password</a></p>
+      <p style="color:#48608b;font-size:14px">If the button doesn't work, copy this link into your browser:<br><span style="word-break:break-all;color:#6a80a8">${escapeHtml(p.link)}</span></p>
+      <p style="color:#9aabc9;font-size:12px">If you didn't request this, you can safely ignore this email — your password won't change.</p>`),
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }

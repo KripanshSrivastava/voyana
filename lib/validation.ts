@@ -44,6 +44,8 @@ export const leadSchema = z
     travelDate: z.string().optional().nullable(),
     travelDateText: z.string().max(120).optional().or(z.literal("")),
     travelers: z.coerce.number().int().min(1).max(999).optional().nullable(),
+    adults: z.coerce.number().int().min(0).max(999).optional().nullable(),
+    children: z.coerce.number().int().min(0).max(999).optional().nullable(),
     budget: z.coerce.number().int().min(0).max(100_000_000).optional().nullable(),
     tripType: z.string().max(60).optional().or(z.literal("")),
     requirements: z.array(z.string().max(60)).max(20).optional().default([]),
