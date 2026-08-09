@@ -466,6 +466,8 @@ function LeadPopupModal({ open, selectedDestination, destinations, onClose }: { 
     destinationText: selectedDestination ?? "",
     departureCity: "",
     nights: "5",
+    adults: "2",
+    children: "0",
     phone: "",
     email: "",
   });
@@ -496,6 +498,10 @@ function LeadPopupModal({ open, selectedDestination, destinations, onClose }: { 
     if (form.departureCity.trim().length < 2) return "Please enter your city.";
     const nights = Number(form.nights);
     if (!Number.isInteger(nights) || nights < 1 || nights > 60) return "Please enter a valid number of nights.";
+    const adults = Number(form.adults);
+    if (!Number.isInteger(adults) || adults < 1 || adults > 99) return "Please enter how many adults are travelling.";
+    const children = Number(form.children || 0);
+    if (!Number.isInteger(children) || children < 0 || children > 99) return "Please enter a valid children count (0 if none).";
     const digits = form.phone.replace(/\D/g, "");
     if (digits.length < 7 || digits.length > 15) return "Please enter a valid phone number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return "Please enter a valid email address.";
@@ -521,6 +527,9 @@ function LeadPopupModal({ open, selectedDestination, destinations, onClose }: { 
           destinationText: form.destinationText,
           departureCity: form.departureCity,
           nights: Number(form.nights),
+          adults: Number(form.adults),
+          children: Number(form.children || 0),
+          travelers: Number(form.adults) + Number(form.children || 0),
           phone: form.phone,
           email: form.email,
           requirements: [`${Number(form.nights)} nights`],
@@ -577,9 +586,20 @@ function LeadPopupModal({ open, selectedDestination, destinations, onClose }: { 
             <Field label="Which city are you travelling from?">
               <Input value={form.departureCity} onChange={(e) => set("departureCity", e.target.value)} placeholder="Delhi, Mumbai, Bangalore" autoComplete="address-level2" />
             </Field>
-            <Field label="How many nights?">
+            <Field label="How many nights?" hint={form.nights && Number(form.nights) > 0 ? `${form.nights} nights / ${Number(form.nights) + 1} days` : undefined}>
               <Input type="number" min={1} max={60} inputMode="numeric" value={form.nights} onChange={(e) => set("nights", e.target.value)} />
             </Field>
+            {/* Adults + children broken out so travel agents can price the
+                trip correctly — a family with children needs different hotel
+                rooms and activities than a group of adults. */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="How many adults?" hint="12 years and above.">
+                <Input type="number" min={1} max={99} inputMode="numeric" value={form.adults} onChange={(e) => set("adults", e.target.value)} />
+              </Field>
+              <Field label="How many children?" hint="Under 12 years.">
+                <Input type="number" min={0} max={99} inputMode="numeric" value={form.children} onChange={(e) => set("children", e.target.value)} />
+              </Field>
+            </div>
             <Field label="Phone Number">
               <Input type="tel" inputMode="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+91 98765 43210" autoComplete="tel" />
             </Field>

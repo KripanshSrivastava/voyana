@@ -107,9 +107,11 @@ export function AvailableLeadCard({
         </span>
         {owned ? (
           <Badge className="bg-emerald-50 text-emerald-700 ring-emerald-600/20">Already yours</Badge>
+        ) : full ? (
+          <Badge className="bg-navy-100 text-navy-600 ring-navy-500/20">Sold</Badge>
         ) : (
-          <Badge className={full ? "bg-rose-50 text-rose-700 ring-rose-600/20" : "bg-teal-50 text-teal-700 ring-teal-600/20"}>
-            {lead.assignmentCount}/{lead.maxAgents} sold
+          <Badge className="bg-teal-50 text-teal-700 ring-teal-600/20">
+            {lead.maxAgents - lead.assignmentCount} slot{lead.maxAgents - lead.assignmentCount === 1 ? "" : "s"} left
           </Badge>
         )}
       </div>
@@ -123,6 +125,15 @@ export function AvailableLeadCard({
         >
           Open lead →
         </Link>
+      ) : full ? (
+        // Fully distributed to other agents — show a clear "Sold out" state
+        // and hide the buy controls entirely. Previously we rendered disabled
+        // buy buttons AND a redundant "This lead is fully distributed" line,
+        // which was confusing. This lead stays in the grid for social proof
+        // (the marketplace looks busy) but is clearly not actionable.
+        <div className="mt-4 flex h-10 items-center justify-center rounded-full bg-navy-50 px-4 text-sm font-medium text-navy-500">
+          Sold out · picked up by other agents
+        </div>
       ) : creditsAvailable === 0 ? (
         <Link
           href="/agent/wallet"
@@ -137,8 +148,8 @@ export function AvailableLeadCard({
           shared={{ priceInr: shared.priceInr, credits: shared.credits }}
           exclusive={{ priceInr: exclusive.priceInr, credits: exclusive.credits, eligible: exclusive.eligible }}
           exclusiveOnly={exclusiveOnly}
-          disabled={!canBuy || full}
-          disabledReason={!canBuy ? "Account not approved" : full ? "Fully distributed" : undefined}
+          disabled={!canBuy}
+          disabledReason={!canBuy ? "Account not approved" : undefined}
           creditsAvailable={creditsAvailable}
         />
       )}
