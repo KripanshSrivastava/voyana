@@ -82,7 +82,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams?: P
                           they're going to call, not by an opaque lead code. */}
                       <td className="px-4 py-3">
                         <div className="font-semibold text-navy-900">{a.lead.customerName}</div>
-                        <div className="text-xs text-navy-500">{a.lead.customerPhone || a.lead.customerEmail || ""}</div>
+                        <div className="text-xs text-navy-500">{a.lead.phone || a.lead.email || ""}</div>
                       </td>
                       <td className="px-4 py-3 text-navy-700">
                         {leadDisplayTitle({
