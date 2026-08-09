@@ -85,6 +85,8 @@ export async function POST(req: Request) {
           email: email || null,
           destinationText: fieldVal(fields, "destination", "city") || "(not specified)",
           budget: (() => { const b = fieldVal(fields, "budget"); return b ? parseInt(b.replace(/[^\d]/g, ""), 10) || null : null; })(),
+          adults: (() => { const a = fieldVal(fields, "adults", "adult_count"); return a ? parseInt(a, 10) || null : null; })(),
+          children: (() => { const c = fieldVal(fields, "children", "kids", "child_count"); return c ? parseInt(c, 10) || null : null; })(),
           source: "meta",
           sourceType: "meta_lead_form",
           externalId: leadgenId,

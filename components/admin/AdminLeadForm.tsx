@@ -17,6 +17,8 @@ export type AdminLeadValue = {
   tripCategory: string;
   travelDate: string; // yyyy-mm-dd
   travelers: string;
+  adults: string;
+  children: string;
   budget: string;
   tripType: string;
   message: string;
@@ -25,7 +27,7 @@ export type AdminLeadValue = {
 export const emptyAdminLead: AdminLeadValue = {
   customerName: "", phone: "", email: "", destinationText: "", departureCity: "",
   clientLocation: "", tripCategory: "",
-  travelDate: "", travelers: "", budget: "", tripType: "", message: "",
+  travelDate: "", travelers: "", adults: "", children: "", budget: "", tripType: "", message: "",
 };
 
 export function AdminLeadForm({
@@ -61,7 +63,14 @@ export function AdminLeadForm({
         clientLocation: f.clientLocation || undefined,
         tripCategory: f.tripCategory || undefined,
         travelDate: f.travelDate || null,
-        travelers: f.travelers ? Number(f.travelers) : null,
+        // Total travellers auto-computes from adults + children when either
+        // is provided; falls back to a manually-entered total. Adults/children
+        // are the canonical breakdown surfaced to agents.
+        travelers: (f.adults || f.children)
+          ? (Number(f.adults || 0) + Number(f.children || 0)) || null
+          : (f.travelers ? Number(f.travelers) : null),
+        adults: f.adults ? Number(f.adults) : null,
+        children: f.children ? Number(f.children) : null,
         budget: f.budget ? Number(f.budget) : null,
         tripType: f.tripType || undefined,
         message: f.message || undefined,
@@ -113,7 +122,8 @@ export function AdminLeadForm({
             </Select>
           </Field>
           <Field label="Travel date"><Input type="date" value={f.travelDate} onChange={(e) => set("travelDate", e.target.value)} /></Field>
-          <Field label="Travelers"><Input type="number" min={1} value={f.travelers} onChange={(e) => set("travelers", e.target.value)} /></Field>
+          <Field label="Adults" hint="12 years and above."><Input type="number" min={0} value={f.adults} onChange={(e) => set("adults", e.target.value)} /></Field>
+          <Field label="Children" hint="Under 12 years."><Input type="number" min={0} value={f.children} onChange={(e) => set("children", e.target.value)} /></Field>
           <Field label="Budget (₹)"><Input type="number" min={0} value={f.budget} onChange={(e) => set("budget", e.target.value)} /></Field>
           <Field label="Trip type">
             <Select value={f.tripType} onChange={(e) => set("tripType", e.target.value)}>

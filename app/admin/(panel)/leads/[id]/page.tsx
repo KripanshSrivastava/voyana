@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, IndianRupee, Tag, Pencil } from "lucide-react";
+import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, Baby, IndianRupee, Tag, Pencil } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
 import { PageHeader, StatusBadge, QualityBadge } from "@/components/admin/ui";
@@ -85,7 +85,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <Detail icon={<MapPin className="h-4 w-4" />} label="Destination" value={lead.destinationText} />
               <Detail icon={<MapPin className="h-4 w-4" />} label="Departure" value={lead.departureCity || "—"} />
               <Detail icon={<Calendar className="h-4 w-4" />} label="Travel date" value={lead.travelDate ? formatDate(lead.travelDate) : lead.travelDateText || "—"} />
-              <Detail icon={<Users className="h-4 w-4" />} label="Travelers" value={lead.travelers?.toString() || "—"} />
+              <Detail icon={<Users className="h-4 w-4" />} label="Adults" value={lead.adults?.toString() ?? (lead.travelers?.toString() || "—")} />
+              <Detail icon={<Baby className="h-4 w-4" />} label="Children" value={lead.children?.toString() ?? "0"} />
               <Detail icon={<IndianRupee className="h-4 w-4" />} label="Budget" value={lead.budget ? formatINR(lead.budget) : "—"} />
               <Detail icon={<Tag className="h-4 w-4" />} label="Trip type" value={lead.tripType || "—"} />
               <Detail icon={<Tag className="h-4 w-4" />} label="Quality score" value={lead.qualityScore != null ? `${lead.qualityScore}/100` : "—"} />

@@ -17,7 +17,12 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
   if (!data) notFound();
   const { lead, assignment, owned } = data;
   const requirements = parseJson<string[]>(lead.requirements, []);
-  const price = lead.price ?? 0;
+  // For a lead the agent has already purchased, the header should show WHAT
+  // THEY PAID at the time of purchase (assignment.price), not the current
+  // template price on the Lead row — those can differ if the admin changed
+  // pricing after the fact. Preview (unpurchased) leads still use lead.price
+  // to advertise the current cost.
+  const price = owned && assignment ? assignment.price : (lead.price ?? 0);
   const priceCredits = priceToCredits(price);
   const full = lead._count.assignments >= lead.maxAgents;
   const credits = agent.creditBalance?.balance ?? 0;

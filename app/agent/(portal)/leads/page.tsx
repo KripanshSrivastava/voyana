@@ -96,6 +96,7 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
               exclusiveOnly={requiresExclusive(l.tripCategory)}
               canBuy={canBuy}
               creditsAvailable={credits}
+              owned={l.assignments.length > 0}
             />
           ))}
         </div>

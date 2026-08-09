@@ -20,6 +20,8 @@ export default async function EditLeadPage({ params }: { params: Promise<{ id: s
     tripCategory: lead.tripCategory ?? "",
     travelDate: lead.travelDate ? lead.travelDate.toISOString().slice(0, 10) : "",
     travelers: lead.travelers?.toString() ?? "",
+    adults: lead.adults?.toString() ?? "",
+    children: lead.children?.toString() ?? "",
     budget: lead.budget?.toString() ?? "",
     tripType: lead.tripType ?? "",
     message: lead.message ?? "",

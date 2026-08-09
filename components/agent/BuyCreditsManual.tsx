@@ -100,9 +100,6 @@ export function BuyCreditsManual({ packages }: { packages: PlanCard[] }) {
           >
             <div className="font-display text-3xl font-bold text-navy-900">{p.credits.toLocaleString("en-IN")} Credits</div>
             <div className="mt-1 text-2xl font-semibold text-navy-700">{formatINR(p.priceInr)}</div>
-            <div className="mt-3 text-sm text-navy-500">
-              {p.credits > 0 ? `${formatINR(Math.round(p.priceInr / p.credits))} / credit` : ""}
-            </div>
             <div className="mt-auto pt-4">
               <span className="inline-flex items-center rounded-full bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 group-hover:bg-brand-600 group-hover:text-white">
                 Buy Credits →

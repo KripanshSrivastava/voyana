@@ -76,10 +76,10 @@ export function exclusiveEligible(assignmentCount: number): boolean {
 }
 
 /** Some lead types are sold exclusively only — no shared distribution.
- *  Currently: INTERNATIONAL leads. The single source of truth for this
- *  rule; consumed by purchaseLead() (rejects SHARED at the transaction),
- *  the Available Leads UI (hides the Buy Shared button), and the auto-buy
- *  service (skips international leads because auto-buy only does SHARED). */
-export function requiresExclusive(tripCategory: string | null | undefined): boolean {
-  return tripCategory === "INTERNATIONAL";
+ *  Currently: NONE. International leads used to be exclusive-only, but the
+ *  policy changed to let vendors buy them as shared too so smaller agents
+ *  can still afford to bid on premium enquiries. Kept as a helper so the
+ *  policy has a single edit site if it ever comes back. */
+export function requiresExclusive(_tripCategory: string | null | undefined): boolean {
+  return false;
 }

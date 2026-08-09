@@ -30,6 +30,8 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
     if (typeof d.message === "string") detailData.message = d.message.trim() || null;
     if (d.travelDate !== undefined) detailData.travelDate = d.travelDate ? new Date(d.travelDate as string) : null;
     if (d.travelers !== undefined) detailData.travelers = d.travelers ? Number(d.travelers) : null;
+    if (d.adults !== undefined) detailData.adults = d.adults != null ? Number(d.adults) : null;
+    if (d.children !== undefined) detailData.children = d.children != null ? Number(d.children) : null;
     if (d.budget !== undefined) detailData.budget = d.budget ? Number(d.budget) : null;
     if (typeof d.clientLocation === "string") detailData.clientLocation = d.clientLocation.trim() || null;
     if (typeof d.tripCategory === "string") {

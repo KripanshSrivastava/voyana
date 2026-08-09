@@ -39,6 +39,7 @@ export function AvailableLeadCard({
   exclusiveOnly,
   canBuy,
   creditsAvailable,
+  owned = false,
 }: {
   lead: AvailableLeadCardData;
   shared: { priceInr: number; credits: number };
@@ -46,6 +47,10 @@ export function AvailableLeadCard({
   exclusiveOnly: boolean;
   canBuy: boolean;
   creditsAvailable: number;
+  /** True if the current agent has already bought this lead. Card stays
+   *  in the grid (so the marketplace never looks empty) but swaps the
+   *  Buy buttons for an "Open lead" link, and hides the price. */
+  owned?: boolean;
 }) {
   const title = leadDisplayTitle({
     destinationText: lead.destinationText,
@@ -100,12 +105,25 @@ export function AvailableLeadCard({
           <ClipboardList className="h-3.5 w-3.5" />
           Enquiry received {enquiryReceived}
         </span>
-        <Badge className={full ? "bg-rose-50 text-rose-700 ring-rose-600/20" : "bg-teal-50 text-teal-700 ring-teal-600/20"}>
-          {lead.assignmentCount}/{lead.maxAgents} sold
-        </Badge>
+        {owned ? (
+          <Badge className="bg-emerald-50 text-emerald-700 ring-emerald-600/20">Already yours</Badge>
+        ) : (
+          <Badge className={full ? "bg-rose-50 text-rose-700 ring-rose-600/20" : "bg-teal-50 text-teal-700 ring-teal-600/20"}>
+            {lead.assignmentCount}/{lead.maxAgents} sold
+          </Badge>
+        )}
       </div>
 
-      {creditsAvailable === 0 ? (
+      {owned ? (
+        // Agent already bought this lead — surface an "Open" CTA so they can
+        // jump straight to the customer details, and hide any pricing UI.
+        <Link
+          href={`/agent/leads/${lead.id}`}
+          className="mt-4 inline-flex h-10 items-center justify-center rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-800 hover:bg-navy-50"
+        >
+          Open lead →
+        </Link>
+      ) : creditsAvailable === 0 ? (
         <Link
           href="/agent/wallet"
           className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"

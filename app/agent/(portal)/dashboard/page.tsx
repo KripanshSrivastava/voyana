@@ -91,6 +91,7 @@ export default async function AgentDashboard() {
                 exclusiveOnly={requiresExclusive(l.tripCategory)}
                 canBuy={canBuy}
                 creditsAvailable={credits}
+                owned={l.assignments.length > 0}
               />
             ))}
           </div>

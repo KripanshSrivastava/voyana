@@ -21,6 +21,32 @@ export const GET = handler(async () => {
   return ok({ packages });
 });
 
+// Create a fresh credit package. Kept intentionally minimal — the admin fills
+// in name/credits/price/QR/etc. after creation via the PATCH row-editor. New
+// packages default to inactive so they don't leak to agents before the admin
+// has finalised pricing and uploaded the payment QR.
+export const POST = handler(async (req: Request) => {
+  const session = await requireRole("ADMIN");
+  requireSuperAdmin(session);
+  const body = await req.json();
+
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
+  const credits = int(body.credits);
+  const priceInr = int(body.priceInr);
+  const displayOrder = Number.isFinite(int(body.displayOrder)) ? int(body.displayOrder) : 100;
+  const isActive = Boolean(body.isActive);
+
+  if (!name) return fail("Package name is required.", 422);
+  if (!Number.isInteger(credits) || credits <= 0) return fail("Enter a valid credit quantity.", 422);
+  if (!Number.isInteger(priceInr) || priceInr <= 0) return fail("Enter a valid package price.", 422);
+
+  const pkg = await prisma.leadCreditPackage.create({
+    data: { name, credits, priceInr, isActive, displayOrder },
+  });
+  await logAudit({ actorType: "ADMIN", actorId: session.uid, actorLabel: session.name, action: "credits.package.create", entityType: "wallet", entityId: pkg.id, metadata: { name, credits, priceInr, isActive, displayOrder } });
+  return ok({ package: pkg });
+});
+
 export const PATCH = handler(async (req: Request) => {
   const session = await requireRole("ADMIN");
   requireSuperAdmin(session);

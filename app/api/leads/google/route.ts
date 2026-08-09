@@ -59,6 +59,8 @@ export async function POST(req: Request) {
   const destination = pick(cols, "DESTINATION", "CITY", "WHERE");
   const budget = pick(cols, "BUDGET");
   const travelers = pick(cols, "TRAVELERS", "PAX", "PEOPLE");
+  const adults = pick(cols, "ADULTS", "ADULT_COUNT");
+  const children = pick(cols, "CHILDREN", "KIDS", "CHILD_COUNT");
 
   if (!phone && !email) {
     await logIntegration({ integration: "google", event: "lead_ingest", status: "FAILED", externalId: payload.lead_id, message: "Missing phone and email" });
@@ -73,6 +75,8 @@ export async function POST(req: Request) {
       destinationText: destination || "(not specified)",
       budget: budget ? parseInt(budget.replace(/[^\d]/g, ""), 10) || null : null,
       travelers: travelers ? parseInt(travelers, 10) || null : null,
+      adults: adults ? parseInt(adults, 10) || null : null,
+      children: children ? parseInt(children, 10) || null : null,
       source: "google",
       sourceType: "google_lead_form",
       externalId: payload.lead_id ? String(payload.lead_id) : null,

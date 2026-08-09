@@ -20,7 +20,8 @@ type State = {
   destinationText: string;
   departureCity: string;
   travelDate: string;
-  travelers: string;
+  adults: string;
+  children: string;
   budget: string;
   tripType: string;
   requirements: string[];
@@ -50,7 +51,8 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
     destinationText: prefill?.destination ?? "",
     departureCity: "",
     travelDate: "",
-    travelers: "2",
+    adults: "2",
+    children: "0",
     budget: "",
     tripType: prefill?.tripType ?? "",
     requirements: [],
@@ -102,7 +104,12 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
           destinationText: form.destinationText,
           departureCity: form.departureCity || undefined,
           travelDate: form.travelDate || undefined,
-          travelers: form.travelers ? Number(form.travelers) : undefined,
+          // Send both the split and the total — total feeds legacy consumers
+          // (older analytics, admin summaries) while adults/children are the
+          // richer breakdown displayed in every new lead surface.
+          adults: form.adults ? Number(form.adults) : undefined,
+          children: form.children ? Number(form.children) : undefined,
+          travelers: (Number(form.adults) || 0) + (Number(form.children) || 0) || undefined,
           budget: form.budget ? Number(form.budget) : undefined,
           tripType: form.tripType || undefined,
           requirements: form.requirements,
@@ -181,14 +188,24 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
           </Field>
         )}
         {step === 3 && (
-          <Field label="How many travelers?">
-            <Input
-              type="number"
-              min={1}
-              value={form.travelers}
-              onChange={(e) => set({ travelers: e.target.value })}
-            />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="How many adults?" hint="12 years and above.">
+              <Input
+                type="number"
+                min={1}
+                value={form.adults}
+                onChange={(e) => set({ adults: e.target.value })}
+              />
+            </Field>
+            <Field label="How many children?" hint="Under 12 years.">
+              <Input
+                type="number"
+                min={0}
+                value={form.children}
+                onChange={(e) => set({ children: e.target.value })}
+              />
+            </Field>
+          </div>
         )}
         {step === 4 && (
           <Field label="What's your approximate budget (per trip, ₹)?" hint="Optional.">

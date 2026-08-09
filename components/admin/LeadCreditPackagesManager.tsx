@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Plus } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { SingleImage } from "@/components/admin/ImageUploader";
 import { formatINR } from "@/lib/utils";
@@ -21,6 +21,7 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
   const router = useRouter();
   const [rows, setRows] = useState(packages);
   const [busy, setBusy] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   function set<K extends keyof PackageRow>(id: string, key: K, value: PackageRow[K]) {
@@ -48,8 +49,52 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
     }
   }
 
+  async function createPackage() {
+    // Sensible defaults for a fresh package — inactive so it doesn't appear
+    // to agents until the admin has set the QR and confirmed the price.
+    // Sort position is one past the current max so it goes to the end.
+    const nextOrder = rows.reduce((max, r) => Math.max(max, r.displayOrder ?? 0), 0) + 1;
+    setCreating(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/lead-credit-packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `New Package`,
+          credits: 100,
+          priceInr: 10000,
+          isActive: false,
+          displayOrder: nextOrder,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Could not create package");
+      setRows((current) => [...current, {
+        id: json.data.package.id,
+        name: json.data.package.name,
+        credits: json.data.package.credits,
+        priceInr: json.data.package.priceInr,
+        isActive: json.data.package.isActive,
+        displayOrder: json.data.package.displayOrder,
+        paymentQrUrl: json.data.package.paymentQrUrl ?? null,
+      }]);
+      setMessage("Package created — edit the fields and click Save.");
+      router.refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Could not create package");
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button variant="brand" onClick={createPackage} disabled={creating}>
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add package
+        </Button>
+      </div>
       <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-sm">
       <table className="w-full text-sm">
         <thead className="bg-navy-50/60">
@@ -59,7 +104,9 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
             <th className="px-4 py-3 font-medium">Price</th>
             <th className="px-4 py-3 font-medium">Cost / lead</th>
             <th className="px-4 py-3 font-medium">Active</th>
-            <th className="px-4 py-3 font-medium">Order</th>
+            <th className="px-4 py-3 font-medium" title="Position in the agent's Buy Credits list. Lower number appears first (e.g. 1 shows before 2). Ties fall back to creation date.">
+              Sort position
+            </th>
             <th className="px-4 py-3 font-medium"></th>
           </tr>
         </thead>
@@ -78,7 +125,7 @@ export function LeadCreditPackagesManager({ packages }: { packages: PackageRow[]
               <td className="px-4 py-3"><Input type="number" value={row.displayOrder} onChange={(e) => set(row.id, "displayOrder", Number(e.target.value))} /></td>
               <td className="px-4 py-3">
                 <Button variant="brand" onClick={() => save(row)} disabled={busy === row.id}>
-                  {busy === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Edit
+                  {busy === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
                 </Button>
               </td>
             </tr>

@@ -10,7 +10,11 @@ import type { Prisma } from "@prisma/client";
 const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED"];
 
 type AvailableLeadItem = Prisma.LeadGetPayload<{
-  include: { _count: { select: { assignments: true } }; destination: { select: { name: true } } };
+  include: {
+    _count: { select: { assignments: true } };
+    destination: { select: { name: true } };
+    assignments: { select: { id: true } };
+  };
 }>;
 
 type AgentPurchaseItem = Prisma.LeadAssignmentGetPayload<{
@@ -67,12 +71,16 @@ function containsInsensitive(field: string): Prisma.StringFilter {
 }
 
 function buildAvailableWhere(agentId: string, filters: AvailableLeadFilters): Prisma.LeadWhereInput {
+  // NB: we intentionally do NOT filter out leads the agent already owns —
+  // they are surfaced too, so a working vendor never sees an empty marketplace
+  // grid. The `agentId` param is kept in the signature because upstream
+  // callers still supply it and future filters may need it.
+  void agentId;
   const and: Prisma.LeadWhereInput[] = [
     {
       price: { gt: 0 },
       status: { in: AVAILABLE_STATUSES },
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      assignments: { none: { agentId } },
     },
   ];
 
@@ -199,7 +207,11 @@ function buildAssignmentOrder(sort?: string | null): Prisma.LeadAssignmentOrderB
   }
 }
 
-/** Cheap count for dashboard stat cards — avoids fetching full lead+destination rows just to show a number. */
+/** Cheap count for dashboard stat cards. Counts leads with remaining capacity
+ *  the agent doesn't already own — the stat is meant to nudge "there's X new
+ *  ones you can still buy", so it excludes already-purchased leads (those
+ *  still render in the grid so it never looks empty, but they don't count as
+ *  "new" opportunities). */
 export async function countAvailableLeads(agentId: string): Promise<number> {
   const rows = await prisma.lead.findMany({
     where: {
@@ -240,10 +252,19 @@ export async function searchAvailableLeads(agentId: string, filters: AvailableLe
       orderBy: buildAvailableOrder(filters.sort),
       skip: (page - 1) * limit,
       take: limit,
-      include: { _count: { select: { assignments: true } }, destination: { select: { name: true } } },
+      include: {
+        _count: { select: { assignments: true } },
+        destination: { select: { name: true } },
+        // Only fetch THIS agent's assignment row (never other agents') so the
+        // card can render "Already yours" without leaking who else bought it.
+        assignments: { where: { agentId }, select: { id: true }, take: 1 },
+      },
     }),
   ]);
-  const filtered = items.filter((l) => l._count.assignments < l.maxAgents);
+  // Fully-sold leads are hidden UNLESS this agent already owns one of the
+  // slots — in which case they must still be visible so the agent can open
+  // and work the lead. This is what keeps the grid from ever going blank.
+  const filtered = items.filter((l) => l._count.assignments < l.maxAgents || l.assignments.length > 0);
   return { items: filtered, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }
 
