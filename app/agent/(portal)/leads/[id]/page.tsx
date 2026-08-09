@@ -3,19 +3,30 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, Baby, Coins, Tag, Lock, MessageCircle } from "lucide-react";
 import { requireAgent } from "@/lib/guards";
 import { getAgentLead } from "@/lib/agent/leads";
+import { getSiteSettings } from "@/lib/settings";
 import { PageHeader } from "@/components/admin/ui";
-import { BuyButton, LeadStatusControl } from "@/components/agent/AgentControls";
+import { BuyLeadControls, LeadStatusControl } from "@/components/agent/AgentControls";
 import { Card, Badge, EmptyState } from "@/components/ui";
-import { priceToCredits } from "@/lib/leads/pricing";
+import { computeLeadCharge, exclusiveEligible, requiresExclusive, priceToCredits } from "@/lib/leads/pricing";
 import { leadTravellersLabel, leadDurationLabel } from "@/lib/leads/display";
 import { formatDate, parseJson } from "@/lib/utils";
 
 export default async function AgentLeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { agent } = await requireAgent();
-  const data = await getAgentLead(agent.id, id);
+  const [data, settings] = await Promise.all([
+    getAgentLead(agent.id, id),
+    getSiteSettings(),
+  ]);
   if (!data) notFound();
   const { lead, assignment, owned } = data;
+  // Purchase charges are computed server-side (never trust client) via the
+  // same helper the /agent/leads grid uses, so the number in the sidebar
+  // matches what the purchase route will actually deduct.
+  const sharedCharge = computeLeadCharge({ tripCategory: lead.tripCategory, purchaseType: "SHARED", settings });
+  const exclusiveCharge = computeLeadCharge({ tripCategory: lead.tripCategory, purchaseType: "EXCLUSIVE", settings });
+  const exclEligible = exclusiveEligible(lead._count.assignments);
+  const exclusiveOnly = requiresExclusive(lead.tripCategory);
   const requirements = parseJson<string[]>(lead.requirements, []);
   // For a lead the agent has already purchased, the header should show WHAT
   // THEY PAID at the time of purchase (assignment.price), not the current
@@ -58,7 +69,14 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
               {duration && <Detail icon={<Calendar className="h-4 w-4" />} label="Duration" value={duration} />}
               <Detail icon={<Tag className="h-4 w-4" />} label="Trip category" value={lead.tripCategory || "-"} />
               <Detail icon={<Tag className="h-4 w-4" />} label="Trip type" value={lead.tripType || "-"} />
-              <Detail icon={<Coins className="h-4 w-4" />} label="Lead cost" value={`${priceCredits.toLocaleString("en-IN")} Credit${priceCredits === 1 ? "" : "s"}`} />
+              {/* Header cost line — owned leads show what the agent actually paid;
+                  unowned leads show the current shared-purchase rate so the
+                  number aligns with the primary Buy button in the sidebar. */}
+              <Detail
+                icon={<Coins className="h-4 w-4" />}
+                label={owned ? "You paid" : "Lead cost (Shared)"}
+                value={`${(owned ? priceCredits : sharedCharge.credits).toLocaleString("en-IN")} Credit${(owned ? priceCredits : sharedCharge.credits) === 1 ? "" : "s"}`}
+              />
             </div>
             {requirements.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -113,19 +131,27 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
               </>
             ) : (
               <>
-                <div className="mb-1 text-sm text-navy-500">Purchase requires</div>
-                <div className="text-3xl font-bold text-navy-900">
-                  {priceCredits.toLocaleString("en-IN")} Lead Credit{priceCredits === 1 ? "" : "s"}
+                <div className="mb-1 text-sm text-navy-500">Purchase options</div>
+                <div className="mb-3 flex flex-wrap items-baseline gap-2">
+                  <span className="text-2xl font-bold text-navy-900">
+                    {sharedCharge.credits.toLocaleString("en-IN")} Cr
+                  </span>
+                  <span className="text-xs uppercase tracking-wide text-navy-400">Shared</span>
+                  <span className="text-navy-300">·</span>
+                  <span className="text-2xl font-bold text-navy-900">
+                    {exclusiveCharge.credits.toLocaleString("en-IN")} Cr
+                  </span>
+                  <span className="text-xs uppercase tracking-wide text-navy-400">Exclusive</span>
                 </div>
-                <div className="mt-4">
-                  <BuyButton
-                    leadId={lead.id}
-                    price={price}
-                    disabled={agent.status !== "APPROVED" || full || credits < priceCredits}
-                    disabledReason={agent.status !== "APPROVED" ? "Account not approved" : full ? "Fully distributed" : credits < priceCredits ? `Needs ${priceCredits} Credit${priceCredits === 1 ? "" : "s"}` : undefined}
-                    size="lg"
-                  />
-                </div>
+                <BuyLeadControls
+                  leadId={lead.id}
+                  shared={{ priceInr: sharedCharge.priceInr, credits: sharedCharge.credits }}
+                  exclusive={{ priceInr: exclusiveCharge.priceInr, credits: exclusiveCharge.credits, eligible: exclEligible }}
+                  exclusiveOnly={exclusiveOnly}
+                  disabled={agent.status !== "APPROVED" || full}
+                  disabledReason={agent.status !== "APPROVED" ? "Account not approved" : full ? "Fully distributed" : undefined}
+                  creditsAvailable={credits}
+                />
                 <p className="mt-3 text-xs text-navy-400">Lead Credits: {credits.toLocaleString("en-IN")}</p>
                 {credits === 0 && <Link href="/agent/wallet" className="mt-3 inline-flex text-sm font-semibold text-brand-700 hover:underline">Buy Lead Credits</Link>}
               </>

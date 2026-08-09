@@ -206,16 +206,24 @@ function BuyRowControls({
   const primaryLabel = exclusiveOnly ? "Buy Exclusive" : canBuySharedNow ? "Buy Now" : canBuyExclusiveNow ? "Buy Exclusive" : "Buy Now";
   const primaryDisabled = !canBuy || (exclusiveOnly ? (!exclusive.eligible || exclNoCredits) : (sharedNoCredits && !canBuyExclusiveNow));
 
+  // Card is a server component, so no onClick handlers here — disabled state
+  // is expressed via pointer-events-none + aria-disabled, which is enough
+  // because the whole card is a link into the lead detail page anyway.
+  if (primaryDisabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className="inline-flex h-11 cursor-not-allowed items-center justify-center gap-2 rounded-full bg-navy-100 px-5 text-sm font-bold uppercase tracking-wide text-navy-400"
+      >
+        {exclusiveOnly ? <Lock className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+        {primaryLabel}
+      </span>
+    );
+  }
   return (
     <Link
       href={`/agent/leads/${leadId}`}
-      aria-disabled={primaryDisabled}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold uppercase tracking-wide ${
-        primaryDisabled
-          ? "cursor-not-allowed bg-navy-100 text-navy-400"
-          : "bg-sun-500 text-white hover:bg-sun-600"
-      }`}
-      onClick={(e) => { if (primaryDisabled) e.preventDefault(); }}
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-sun-500 px-5 text-sm font-bold uppercase tracking-wide text-white hover:bg-sun-600"
     >
       {exclusiveOnly ? <Lock className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
       {primaryLabel}
