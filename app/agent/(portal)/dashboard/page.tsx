@@ -62,7 +62,7 @@ export default async function AgentDashboard() {
               </Link>
             )}
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="flex flex-col gap-3">
             {availableResult.items.map((l) => (
               <AvailableLeadCard
                 key={l.id}

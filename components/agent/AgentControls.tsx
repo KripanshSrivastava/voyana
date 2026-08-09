@@ -107,6 +107,12 @@ export function BuyLeadControls({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Purchase failed");
       setBusy(null);
+      // The most common failure is a race — another agent bought the remaining
+      // slot between page load and click, or the lead's status flipped. In
+      // both cases the card in the grid is now stale (still shows "N slots
+      // left" or an enabled Buy button). Refresh the server components so
+      // the grid re-fetches and the card re-renders as "Sold out".
+      router.refresh();
     }
   }
 

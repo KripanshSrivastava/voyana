@@ -67,7 +67,7 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
         <EmptyState title="No leads found" description="Try clearing filters or check back later for new qualified leads." />
       ) : (
         <>
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-col gap-3">
           {result.items.map((l) => (
             <AvailableLeadCard
               key={l.id}
