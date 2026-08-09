@@ -42,6 +42,7 @@ function toData(s: ReturnType<typeof settingsSchema.parse>) {
     priceSharedInternational: s.priceSharedInternational,
     priceExclusiveDomestic: s.priceExclusiveDomestic,
     priceExclusiveInternational: s.priceExclusiveInternational,
+    adCostPerClickCredits: s.adCostPerClickCredits,
     footerText: s.footerText || null,
     defaultSeoTitle: s.defaultSeoTitle || null,
     defaultSeoDescription: s.defaultSeoDescription || null,

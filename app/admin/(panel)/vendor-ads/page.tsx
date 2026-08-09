@@ -29,8 +29,6 @@ export default async function VendorAdsPage({ searchParams }: { searchParams: Pr
     status: v(resolvedSearchParams, "status"),
     vendor: v(resolvedSearchParams, "vendor"),
     destination: v(resolvedSearchParams, "destination"),
-    clientLocation: v(resolvedSearchParams, "clientLocation"),
-    category: v(resolvedSearchParams, "category"),
     search: v(resolvedSearchParams, "search"),
     from: v(resolvedSearchParams, "from"),
     to: v(resolvedSearchParams, "to"),
@@ -42,8 +40,6 @@ export default async function VendorAdsPage({ searchParams }: { searchParams: Pr
   if (filters.status) where.status = filters.status;
   if (filters.vendor) where.agent = { OR: [{ companyName: { contains: filters.vendor, mode: "insensitive" } }, { user: { name: { contains: filters.vendor, mode: "insensitive" } } }] };
   if (filters.destination) where.destination = { contains: filters.destination, mode: "insensitive" };
-  if (filters.clientLocation) where.clientLocation = { contains: filters.clientLocation, mode: "insensitive" };
-  if (filters.category) where.category = filters.category;
   if (filters.search) where.OR = [{ title: { contains: filters.search, mode: "insensitive" } }, { description: { contains: filters.search, mode: "insensitive" } }];
   if (filters.from || filters.to) where.createdAt = { gte: filters.from ? new Date(filters.from) : undefined, lte: filters.to ? new Date(filters.to) : undefined };
 
@@ -76,9 +72,8 @@ export default async function VendorAdsPage({ searchParams }: { searchParams: Pr
               <tr>
                 <th className="px-4 py-3 font-medium">Vendor</th>
                 <th className="px-4 py-3 font-medium">Campaign</th>
-                <th className="px-4 py-3 font-medium">Destination</th>
-                <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium">Budget</th>
+                <th className="px-4 py-3 font-medium">Target</th>
+                <th className="px-4 py-3 font-medium">Clicks / Impr.</th>
                 <th className="px-4 py-3 font-medium">Dates</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium"></th>
@@ -86,14 +81,15 @@ export default async function VendorAdsPage({ searchParams }: { searchParams: Pr
             </thead>
             <tbody className="divide-y divide-navy-50">
               {items.length === 0 ? (
-                <tr><td className="px-4 py-8 text-center text-navy-500" colSpan={8}>No vendor ads found.</td></tr>
+                <tr><td className="px-4 py-8 text-center text-navy-500" colSpan={7}>No vendor ads found.</td></tr>
               ) : items.map((ad) => (
                 <tr key={ad.id} className="hover:bg-navy-50/40">
                   <td className="px-4 py-3 text-navy-700">{ad.agent.companyName}</td>
                   <td className="px-4 py-3 font-medium text-brand-700"><Link href={`/admin/vendor-ads/${ad.id}`}>{ad.title}</Link></td>
-                  <td className="px-4 py-3 text-navy-700">{ad.destination || "—"}</td>
-                  <td className="px-4 py-3 text-navy-700">{ad.category ? titleCase(ad.category) : "—"}</td>
-                  <td className="px-4 py-3 text-navy-700">{ad.dailyBudget ? `₹${ad.dailyBudget.toLocaleString("en-IN")}` : "—"}</td>
+                  <td className="px-4 py-3 text-navy-700">
+                    {ad.targetType ? `${titleCase(ad.targetType.toLowerCase())} · ` : ""}{ad.destination || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-navy-700">{ad.clicks} / {ad.impressions}</td>
                   <td className="px-4 py-3 text-navy-500">{[ad.startDate ? formatDate(ad.startDate) : null, ad.endDate ? formatDate(ad.endDate) : null].filter(Boolean).join(" → ") || "—"}</td>
                   <td className="px-4 py-3"><Badge className={ad.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" : ad.status === "REJECTED" ? "bg-rose-50 text-rose-700 ring-rose-600/20" : ad.status === "PAUSED" ? "bg-amber-50 text-amber-700 ring-amber-600/20" : "bg-slate-100 text-slate-600 ring-slate-500/20"}>{titleCase(ad.status)}</Badge></td>
                   <td className="px-4 py-3"><Link href={`/admin/vendor-ads/${ad.id}`} className="font-medium text-brand-700 hover:underline">Open</Link></td>
@@ -116,7 +112,6 @@ function FilterBar({ searchParams }: { searchParams?: Record<string, string | st
       <Input name="search" defaultValue={v(searchParams, "search")} placeholder="Search campaign / creative" />
       <Input name="vendor" defaultValue={v(searchParams, "vendor")} placeholder="Vendor" />
       <Input name="destination" defaultValue={v(searchParams, "destination")} placeholder="Destination" />
-      <Input name="clientLocation" defaultValue={v(searchParams, "clientLocation")} placeholder="Client location" />
       <Input name="from" type="date" defaultValue={v(searchParams, "from")} />
       <Input name="to" type="date" defaultValue={v(searchParams, "to")} />
       <Select name="status" defaultValue={v(searchParams, "status")}>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Users, Calendar, Clock, ClipboardList } from "lucide-react";
+import { MapPin, Users, Baby, Calendar, Clock, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui";
 import { BuyLeadControls } from "@/components/agent/AgentControls";
 import { leadDisplayTitle, leadTravellersLabel, leadDurationLabel, formatDMY, formatDMYTime } from "@/lib/leads/display";
@@ -58,6 +58,7 @@ export function AvailableLeadCard({
     adults: lead.adults,
     children: lead.children,
   });
+  const hasSplit = lead.adults != null || lead.children != null;
   const duration = leadDurationLabel({ nights: lead.nights, requirements: lead.requirements });
   const journey = lead.travelDate ? formatDMY(lead.travelDate) : (lead.travelDateText || null);
   const enquiryReceived = formatDMYTime(lead.createdAt);
@@ -78,7 +79,18 @@ export function AvailableLeadCard({
 
       <dl className="space-y-1.5 text-sm">
         <Row icon={<MapPin className="h-4 w-4" />} label="Destination" value={destination} />
-        {travellers && <Row icon={<Users className="h-4 w-4" />} label="Travellers" value={travellers} />}
+        {/* When the traveller breakdown is captured, show adults and children
+            on separate rows — agents quote very differently for a family of 4
+            (2A+2C) vs a group of 4 adults. Falls back to the combined label
+            when the split isn't known (older/imported leads). */}
+        {hasSplit ? (
+          <>
+            <Row icon={<Users className="h-4 w-4" />} label="Adults" value={String(lead.adults ?? 0)} />
+            <Row icon={<Baby className="h-4 w-4" />} label="Children" value={String(lead.children ?? 0)} />
+          </>
+        ) : (
+          travellers && <Row icon={<Users className="h-4 w-4" />} label="Travellers" value={travellers} />
+        )}
         {journey && <Row icon={<Calendar className="h-4 w-4" />} label="Journey date" value={journey} />}
         {duration && <Row icon={<Clock className="h-4 w-4" />} label="Duration" value={duration} />}
       </dl>

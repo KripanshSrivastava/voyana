@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, IndianRupee, Tag, Lock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, Baby, Coins, Tag, Lock, MessageCircle } from "lucide-react";
 import { requireAgent } from "@/lib/guards";
 import { getAgentLead } from "@/lib/agent/leads";
 import { PageHeader } from "@/components/admin/ui";
 import { BuyButton, LeadStatusControl } from "@/components/agent/AgentControls";
 import { Card, Badge, EmptyState } from "@/components/ui";
-import { formatINR, formatDate, parseJson } from "@/lib/utils";
+import { priceToCredits } from "@/lib/leads/pricing";
+import { leadTravellersLabel, leadDurationLabel } from "@/lib/leads/display";
+import { formatDate, parseJson } from "@/lib/utils";
 
 export default async function AgentLeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,9 +18,12 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
   const { lead, assignment, owned } = data;
   const requirements = parseJson<string[]>(lead.requirements, []);
   const price = lead.price ?? 0;
+  const priceCredits = priceToCredits(price);
   const full = lead._count.assignments >= lead.maxAgents;
   const credits = agent.creditBalance?.balance ?? 0;
   const whatsapp = lead.phone.replace(/[^\d]/g, "");
+  const travellers = leadTravellersLabel({ travelers: lead.travelers, adults: lead.adults, children: lead.children });
+  const duration = leadDurationLabel({ nights: lead.nights, requirements });
 
   return (
     <div>
@@ -39,11 +44,16 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
               <Detail icon={<MapPin className="h-4 w-4" />} label="Destination" value={lead.destination?.name || lead.destinationText} />
               <Detail icon={<MapPin className="h-4 w-4" />} label="Client location" value={lead.clientLocation || lead.departureCity || "-"} />
               <Detail icon={<Calendar className="h-4 w-4" />} label="Travel date" value={lead.travelDate ? formatDate(lead.travelDate) : lead.travelDateText || "Flexible"} />
-              <Detail icon={<Users className="h-4 w-4" />} label="Travelers" value={lead.travelers?.toString() || "-"} />
-              <Detail icon={<IndianRupee className="h-4 w-4" />} label="Client budget" value={lead.budget ? formatINR(lead.budget) : "-"} />
+              {/* Break out adults + children so agents can size the trip at a glance —
+                  a "family of 4" enquiry with 2 children needs different quoting than
+                  "4 adults". Falls back to the raw traveller count when the split
+                  isn't captured. */}
+              <Detail icon={<Users className="h-4 w-4" />} label="Adults" value={lead.adults != null ? String(lead.adults) : (travellers ? travellers : "-")} />
+              <Detail icon={<Baby className="h-4 w-4" />} label="Children" value={lead.children != null ? String(lead.children) : "0"} />
+              {duration && <Detail icon={<Calendar className="h-4 w-4" />} label="Duration" value={duration} />}
               <Detail icon={<Tag className="h-4 w-4" />} label="Trip category" value={lead.tripCategory || "-"} />
               <Detail icon={<Tag className="h-4 w-4" />} label="Trip type" value={lead.tripType || "-"} />
-              <Detail icon={<IndianRupee className="h-4 w-4" />} label="Lead price" value={formatINR(price)} />
+              <Detail icon={<Coins className="h-4 w-4" />} label="Lead cost" value={`${priceCredits.toLocaleString("en-IN")} Credit${priceCredits === 1 ? "" : "s"}`} />
             </div>
             {requirements.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -92,19 +102,22 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
               <>
                 <h2 className="mb-4 font-semibold text-navy-900">Update status</h2>
                 <LeadStatusControl leadId={lead.id} current={assignment!.status} />
-                <p className="mt-3 text-xs text-navy-400">Purchased with 1 Lead Credit on {formatDate(assignment!.purchasedAt)}.</p>
+                <p className="mt-3 text-xs text-navy-400">
+                  Purchased with {priceToCredits(assignment!.price).toLocaleString("en-IN")} Credit{priceToCredits(assignment!.price) === 1 ? "" : "s"} on {formatDate(assignment!.purchasedAt)}.
+                </p>
               </>
             ) : (
               <>
                 <div className="mb-1 text-sm text-navy-500">Purchase requires</div>
-                <div className="text-3xl font-bold text-navy-900">1 Lead Credit</div>
-                <p className="mt-1 text-sm text-navy-500">Lead price: {formatINR(price)}</p>
+                <div className="text-3xl font-bold text-navy-900">
+                  {priceCredits.toLocaleString("en-IN")} Lead Credit{priceCredits === 1 ? "" : "s"}
+                </div>
                 <div className="mt-4">
                   <BuyButton
                     leadId={lead.id}
                     price={price}
-                    disabled={agent.status !== "APPROVED" || full || credits < 1}
-                    disabledReason={agent.status !== "APPROVED" ? "Account not approved" : full ? "Fully distributed" : credits < 1 ? "Lead Credits required" : undefined}
+                    disabled={agent.status !== "APPROVED" || full || credits < priceCredits}
+                    disabledReason={agent.status !== "APPROVED" ? "Account not approved" : full ? "Fully distributed" : credits < priceCredits ? `Needs ${priceCredits} Credit${priceCredits === 1 ? "" : "s"}` : undefined}
                     size="lg"
                   />
                 </div>

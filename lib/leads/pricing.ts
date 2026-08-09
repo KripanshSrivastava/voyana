@@ -6,12 +6,18 @@ import "server-only";
  * admin display — must go through here. Never trust a price sent from the
  * client; the server always re-computes.
  *
- * Rupee price is derived from four admin-configurable SiteSetting fields.
- * Credit cost is derived from the rupee price (1 credit = ₹100, matching
- * the existing LEAD_100 / LEAD_150 credit packages — round up so ₹150
- * costs 2 credits, not "1.5"). Never zero credits: a free-priced lead
- * (₹0) still costs 1 credit to unlock the customer's contact details, so
- * abuse via "free" pricing can't drain leads for nothing.
+ * All prices are denominated in **Lead Credits** — the number an admin
+ * enters in Site Settings for e.g. "Shared domestic" is the credit cost
+ * charged to the agent for that lead. Rupees are never surfaced to agents.
+ * Never zero credits: a lead priced at 0 in settings still costs 1 credit
+ * to unlock the customer's contact details, so a mis-configured setting
+ * can't be used to drain leads for nothing.
+ *
+ * NOTE: the schema field is still named `priceInr` and `LeadAssignment.price`
+ * for legacy reasons — the *value* is now the credit count directly. Keeping
+ * the field name avoids a wide-blast-radius rename; a follow-up migration
+ * can rename the columns once every consumer is confirmed reading it as
+ * credits.
  */
 
 export type PurchaseType = "SHARED" | "EXCLUSIVE";
@@ -29,7 +35,7 @@ function isInternational(tripCategory: string | null | undefined): boolean {
   return tripCategory === "INTERNATIONAL";
 }
 
-/** Rupee price the agent is charged for this purchase type on this lead. */
+/** Credit cost the agent is charged for this purchase type on this lead. */
 export function computeLeadPrice(params: {
   tripCategory: string | null | undefined;
   purchaseType: PurchaseType;
@@ -42,9 +48,13 @@ export function computeLeadPrice(params: {
   return intl ? params.settings.priceSharedInternational : params.settings.priceSharedDomestic;
 }
 
-/** Credit cost for a rupee price (1 credit = ₹100, minimum 1 credit). */
-export function priceToCredits(priceInr: number): number {
-  return Math.max(1, Math.ceil(priceInr / 100));
+/** Credit cost for a stored price value. Historically this converted rupees
+ *  to credits at 1:100; the pricing model is now credits-directly, so the
+ *  stored value IS the credit count. Kept as a function (rather than inlining
+ *  the raw field) so a future change of denomination has a single edit site
+ *  and existing callers keep working unchanged. Never zero. */
+export function priceToCredits(storedPrice: number): number {
+  return Math.max(1, Math.floor(storedPrice));
 }
 
 /** Convenience: both together, for consumers that need both numbers. */

@@ -23,6 +23,7 @@ export default async function SettingsPage() {
     priceSharedInternational: String(s.priceSharedInternational),
     priceExclusiveDomestic: String(s.priceExclusiveDomestic),
     priceExclusiveInternational: String(s.priceExclusiveInternational),
+    adCostPerClickCredits: String(s.adCostPerClickCredits),
     footerText: s.footerText ?? "", defaultSeoTitle: s.defaultSeoTitle ?? "", defaultSeoDescription: s.defaultSeoDescription ?? "",
     gaId: s.gaId ?? "", metaPixelId: s.metaPixelId ?? "", googleAdsId: s.googleAdsId ?? "",
   };

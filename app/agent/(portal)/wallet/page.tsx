@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { Card, EmptyState } from "@/components/ui";
 import { BuyCreditsManual } from "@/components/agent/BuyCreditsManual";
-import { formatINR, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 
 export default async function WalletPage() {
   const { agent } = await requireAgent();
@@ -88,7 +88,7 @@ export default async function WalletPage() {
                     <div className="text-xs text-navy-400">Purchased: {formatDateTime(p.paidAt ?? p.createdAt)}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-navy-900">{p.credits} credits / {formatINR(p.priceInr)}</div>
+                    <div className="font-semibold text-navy-900">{p.credits.toLocaleString("en-IN")} Credits</div>
                     <div className="text-xs text-navy-400">Status: {p.status}</div>
                   </div>
                 </div>

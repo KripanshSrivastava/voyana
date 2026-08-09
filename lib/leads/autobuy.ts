@@ -62,7 +62,8 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
         // Use the server-computed price from the purchase result — the local
         // `price` variable was read from lead.price which may be stale.
         const charged = purchase.price;
-        await notify({ userId: agent.userId, type: "purchase", title: `Auto-purchased lead ${lead.code}`, body: `${lead.destinationText} · ₹${charged.toLocaleString("en-IN")}. Customer details are now available.`, href: `/agent/leads/${leadId}` });
+        const chargedCredits = Math.max(1, Math.floor(charged));
+        await notify({ userId: agent.userId, type: "purchase", title: `Auto-purchased lead ${lead.code}`, body: `${lead.destinationText} · ${chargedCredits.toLocaleString("en-IN")} Credit${chargedCredits === 1 ? "" : "s"}. Customer details are now available.`, href: `/agent/leads/${leadId}` });
         if (agent.user.email) {
           try {
             await sendEmail({

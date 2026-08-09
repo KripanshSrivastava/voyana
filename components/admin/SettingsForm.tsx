@@ -14,6 +14,7 @@ export type SettingsValue = {
   leadValidityDays: string;
   priceSharedDomestic: string; priceSharedInternational: string;
   priceExclusiveDomestic: string; priceExclusiveInternational: string;
+  adCostPerClickCredits: string;
   footerText: string; defaultSeoTitle: string; defaultSeoDescription: string;
   gaId: string; metaPixelId: string; googleAdsId: string;
 };
@@ -45,6 +46,7 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
           priceSharedInternational: Number(f.priceSharedInternational),
           priceExclusiveDomestic: Number(f.priceExclusiveDomestic),
           priceExclusiveInternational: Number(f.priceExclusiveInternational),
+          adCostPerClickCredits: Number(f.adCostPerClickCredits),
           footerText: f.footerText, defaultSeoTitle: f.defaultSeoTitle, defaultSeoDescription: f.defaultSeoDescription,
           gaId: f.gaId, metaPixelId: f.metaPixelId, googleAdsId: f.googleAdsId,
         }),
@@ -88,7 +90,7 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
 
       <Card className="p-6 space-y-4">
         <h2 className="font-semibold text-navy-900">Lead defaults</h2>
-        <Field label="Default lead price (₹)" hint="Fallback used only when the per-type prices below don't cover a lead.">
+        <Field label="Default lead price (Credits)" hint="Fallback used only when the per-type prices below don't cover a lead.">
           <Input type="number" min={0} step={1} value={f.defaultLeadPrice} onChange={(e) => set("defaultLeadPrice", e.target.value)} />
         </Field>
         <Field label="Max agents per lead">
@@ -103,20 +105,37 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
       </Card>
 
       <Card className="p-6 space-y-4 lg:col-span-2">
-        <h2 className="font-semibold text-navy-900">Lead pricing</h2>
-        <p className="text-sm text-navy-500">Prices agents pay per lead, by lead type. Prices cannot be negative.</p>
+        <h2 className="font-semibold text-navy-900">Lead pricing (in Credits)</h2>
+        <p className="text-sm text-navy-500">Credits deducted from the agent when they purchase a lead of the matching type. Enter <strong>the number of credits</strong>, not rupees — agents never see a ₹ amount for lead purchases. Cannot be negative.</p>
+        {/* Migration heads-up: before this shift these fields stored ₹ amounts
+            (100 / 200). They are now interpreted directly as CREDITS, so the
+            old seeded values would charge 100 or 200 credits per lead — which
+            is almost certainly not what the admin wants. Suggested reset:
+            1 / 1 / 2 / 2 credits (matches the previous ₹100 / ₹200 economics
+            at the credit-package rate of ₹100 = 1 credit). */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">Heads up after the pricing shift</p>
+          <p className="mt-1">
+            These values now mean <strong>credits, not rupees</strong>. If you upgraded from a version that stored ₹100 / ₹200 here,
+            reset them to <strong>1 / 1 / 2 / 2</strong> to preserve the same economics — otherwise agents will be charged 100+ credits per lead.
+          </p>
+          <p className="mt-1">Existing purchase-history rows may show inflated credit costs for the same reason; new purchases use the values you save below.</p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Shared · Domestic (₹)">
+          <Field label="Shared · Domestic (Credits)">
             <Input type="number" min={0} step={1} value={f.priceSharedDomestic} onChange={(e) => set("priceSharedDomestic", e.target.value)} />
           </Field>
-          <Field label="Shared · International (₹)">
+          <Field label="Shared · International (Credits)">
             <Input type="number" min={0} step={1} value={f.priceSharedInternational} onChange={(e) => set("priceSharedInternational", e.target.value)} />
           </Field>
-          <Field label="Exclusive · Domestic (₹)">
+          <Field label="Exclusive · Domestic (Credits)">
             <Input type="number" min={0} step={1} value={f.priceExclusiveDomestic} onChange={(e) => set("priceExclusiveDomestic", e.target.value)} />
           </Field>
-          <Field label="Exclusive · International (₹)">
+          <Field label="Exclusive · International (Credits)">
             <Input type="number" min={0} step={1} value={f.priceExclusiveInternational} onChange={(e) => set("priceExclusiveInternational", e.target.value)} />
+          </Field>
+          <Field label="Ad cost per click (Credits)" hint="Flat rate deducted from a vendor's balance each time a traveller clicks their ad. Vendors don't bid.">
+            <Input type="number" min={0} step={1} value={f.adCostPerClickCredits} onChange={(e) => set("adCostPerClickCredits", e.target.value)} />
           </Field>
         </div>
       </Card>

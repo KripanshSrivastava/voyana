@@ -208,12 +208,19 @@ model VendorAd {
   title          String
   description    String?
   imageUrl       String?
+  // Ads now point at a piece of vendor-owned CMS content — either a
+  // Destination or a TourPackage (tour or package) they've submitted and
+  // had approved. `landingUrl` is derived server-side from the target
+  // (e.g. /destinations/[slug]) and kept as a materialised column so the
+  // public ad renderer stays trivial.
   landingUrl     String?
-  destination    String?
-  clientLocation String?
-  category       String?  // DOMESTIC|INTERNATIONAL|INBOUND
-  dailyBudget    Int?
-  maxBid         Int?
+  destination    String?  // Denormalised display name for the public card.
+  targetType     String?  // DESTINATION | PACKAGE | TOUR
+  targetSubmissionId String? // FK-like: id of Destination or TourPackage. No @relation — the target model differs by targetType, so referential integrity is enforced application-side in /api/agent/ads.
+  clientLocation String?  // DEPRECATED: kept for legacy rows. Not written by new ads.
+  category       String?  // DEPRECATED
+  dailyBudget    Int?     // DEPRECATED
+  maxBid         Int?     // DEPRECATED
   startDate      DateTime?
   endDate        DateTime?
   status         String   @default("DRAFT") // DRAFT|PENDING|APPROVED|REJECTED|PAUSED|EXPIRED
@@ -224,6 +231,7 @@ model VendorAd {
 
   @@index([status])
   @@index([agentId])
+  @@index([targetType, targetSubmissionId])
 }
 
 model WalletTopup {
@@ -719,12 +727,17 @@ model SiteSetting {
   leadMaxAgents      Int    @default(2)     // How many agents a shared lead may be sold to.
   leadExpiryHours    Int    @default(72)    // Legacy hours-based expiry. Only used if leadValidityDays is unset. New leads use leadValidityDays.
   leadValidityDays   Int    @default(365)   // New default lead validity — 365 days from creation.
-  // Per-type purchase pricing (₹). All must be >= 0. Enforced in
+  // Per-type purchase pricing in **Lead Credits** (not rupees). The value
+  // an admin enters here is the number of credits deducted from the agent
+  // when they purchase a lead of the matching kind. Enforced in
   // lib/validation.ts::settingsSchema and in the admin API route.
-  priceSharedDomestic     Int @default(100)
-  priceSharedInternational Int @default(100)
-  priceExclusiveDomestic     Int @default(200)
-  priceExclusiveInternational Int @default(200)
+  priceSharedDomestic     Int @default(1)
+  priceSharedInternational Int @default(1)
+  priceExclusiveDomestic     Int @default(2)
+  priceExclusiveInternational Int @default(2)
+  // Fixed cost (in Lead Credits) charged per click on a vendor ad. Section
+  // 1 of the ads spec: flat rate, no bidding — admin decides the rate.
+  adCostPerClickCredits   Int @default(10)
   footerText         String?
   defaultSeoTitle    String?
   defaultSeoDescription String?

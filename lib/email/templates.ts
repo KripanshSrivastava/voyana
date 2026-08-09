@@ -46,12 +46,16 @@ export function adminNewLead(p: { code: string; destination: string; quality: st
 }
 
 export function agentLeadPurchased(p: { agentName: string; code: string; destination: string; price: number }) {
+  // `price` is the stored value on LeadAssignment — now denominated in
+  // Lead Credits. Never surface a ₹ amount for the agent's cost; only
+  // the customer's own budget (if any) may be shown in rupees elsewhere.
+  const credits = Math.max(1, Math.floor(p.price));
   return {
     subject: `Lead purchase receipt — ${p.code}`,
     html: shell("New lead purchased", `
       <p>Hi ${escapeHtml(p.agentName)},</p>
       <p>You've purchased lead <strong>${p.code}</strong> for <strong>${escapeHtml(p.destination)}</strong>. Customer contact details are now available in your dashboard.</p>
-      <p style="background:#f2f5fa;padding:10px 14px;border-radius:8px">Amount charged: <strong>₹${p.price.toLocaleString("en-IN")}</strong></p>
+      <p style="background:#f2f5fa;padding:10px 14px;border-radius:8px">Charged: <strong>${credits.toLocaleString("en-IN")} Lead Credit${credits === 1 ? "" : "s"}</strong></p>
       <p style="color:#48608b;font-size:14px">Tip: contact the customer quickly — faster responses convert better.</p>`),
   };
 }
@@ -67,9 +71,12 @@ export function agentAutoLeadPurchased(p: { agentName: string; code: string; des
         <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Destination</td><td>${escapeHtml(p.destination)}</td></tr>
         ${p.travelDate ? `<tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Travel date</td><td>${escapeHtml(p.travelDate)}</td></tr>` : ""}
         ${p.travelers != null ? `<tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Travelers</td><td>${p.travelers}</td></tr>` : ""}
-        ${p.budget != null ? `<tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Budget</td><td>₹${p.budget.toLocaleString("en-IN")}</td></tr>` : ""}
+        ${/* Customer's stated trip budget is intentionally omitted — it's a
+             rupee amount and the rest of this email is credit-denominated;
+             mixing the two on the same receipt was reading as confusing. The
+             agent can see the customer's budget inside the app if needed. */""}
         <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Lead quality</td><td>${escapeHtml(p.quality)}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Purchase price</td><td><strong>₹${p.price.toLocaleString("en-IN")}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Charged</td><td><strong>${Math.max(1, Math.floor(p.price)).toLocaleString("en-IN")} Lead Credit${Math.max(1, Math.floor(p.price)) === 1 ? "" : "s"}</strong></td></tr>
       </table>`),
   };
 }
@@ -83,7 +90,8 @@ export function agentLeadAlert(p: { agentName: string; destination: string; trip
       <table style="font-size:14px;color:#2e3d5c">
         <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Destination</td><td><strong>${escapeHtml(p.destination)}</strong></td></tr>
         ${p.tripCategory ? `<tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Category</td><td>${escapeHtml(p.tripCategory)}</td></tr>` : ""}
-        ${p.budget != null ? `<tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Budget</td><td>₹${p.budget.toLocaleString("en-IN")}</td></tr>` : ""}
+        ${/* Budget omitted — this is an alert nudging the agent to open the
+             app; the credits-vs-rupees mismatch had no place in the summary. */""}
         <tr><td style="padding:4px 12px 4px 0;color:#6a80a8">Lead quality</td><td>${escapeHtml(p.quality)}</td></tr>
       </table>
       <p style="margin-top:16px"><a href="${p.url}" style="background:#f97316;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:600">View available leads</a></p>`),

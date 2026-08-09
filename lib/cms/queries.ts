@@ -106,7 +106,9 @@ export function getPublicVendorAds(take = 6) {
           { OR: [{ endDate: null }, { endDate: { gte: now } }] },
         ],
       },
-      orderBy: [{ maxBid: "desc" }, { createdAt: "desc" }],
+      // No bidding on the new ad model — cost per click is a flat admin-set
+      // rate. Newest approved ads surface first.
+      orderBy: [{ createdAt: "desc" }],
       take,
       select: {
         id: true,

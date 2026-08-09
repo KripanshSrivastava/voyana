@@ -248,6 +248,8 @@ export const settingsSchema = z.object({
   priceSharedInternational: z.coerce.number().int().min(0, "Price cannot be negative."),
   priceExclusiveDomestic: z.coerce.number().int().min(0, "Price cannot be negative."),
   priceExclusiveInternational: z.coerce.number().int().min(0, "Price cannot be negative."),
+  // Cost per vendor-ad click, in Lead Credits. Cannot be negative.
+  adCostPerClickCredits: z.coerce.number().int().min(0, "Ad cost cannot be negative."),
   footerText: z.string().max(500).optional().or(z.literal("")),
   defaultSeoTitle: z.string().max(200).optional().or(z.literal("")),
   defaultSeoDescription: z.string().max(400).optional().or(z.literal("")),

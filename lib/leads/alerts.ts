@@ -28,7 +28,12 @@ export async function runLeadAlerts(leadId: string): Promise<void> {
       }
 
       const title = `New matching lead — ${lead.destinationText}`;
-      const body = `${lead.tripCategory ? lead.tripCategory + " · " : ""}Budget ${lead.budget ? "₹" + lead.budget.toLocaleString("en-IN") : "—"} · Quality ${lead.quality}`;
+      // No ₹ in agent-facing alert bodies — agents work in credits only. The
+      // customer's own trip budget is hidden here for the same reason: it's
+      // rupee-denominated and would put a big ₹ next to a Buy button that
+      // charges credits, which reads as confusing at best and misleading at
+      // worst. Quality + category still convey how promising the lead is.
+      const body = `${lead.tripCategory ? lead.tripCategory + " · " : ""}Quality ${lead.quality}`;
       if (pref.alertInApp) await notify({ userId: pref.agent.userId, type: "lead", title, body, href: "/agent/leads" });
       if (pref.alertEmail && pref.agent.user.email) {
         const t = agentLeadAlert({

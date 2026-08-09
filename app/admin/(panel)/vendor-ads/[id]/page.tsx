@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/guards";
 import { requireArea } from "@/lib/rbac";
+import { getSiteSettings } from "@/lib/settings";
 import { PageHeader } from "@/components/admin/ui";
 import { Card, Badge } from "@/components/ui";
 import { formatDate, formatDateTime, titleCase } from "@/lib/utils";
@@ -14,6 +15,8 @@ export default async function VendorAdDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const ad = await prisma.vendorAd.findUnique({ where: { id }, include: { agent: { include: { user: true } } } });
   if (!ad) notFound();
+  const settings = await getSiteSettings();
+  const cpc = settings.adCostPerClickCredits ?? 10;
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -26,11 +29,8 @@ export default async function VendorAdDetailPage({ params }: { params: Promise<{
             <Row label="Vendor" value={ad.agent.companyName} />
             <Row label="Contact" value={ad.agent.user.name} />
             <Row label="Email" value={ad.agent.user.email} />
-            <Row label="Destination" value={ad.destination || "—"} />
-            <Row label="Client location" value={ad.clientLocation || "—"} />
-            <Row label="Category" value={ad.category ? titleCase(ad.category) : "—"} />
-            <Row label="Budget" value={ad.dailyBudget ? `₹${ad.dailyBudget.toLocaleString("en-IN")}` : "—"} />
-            <Row label="Bid" value={ad.maxBid ? `₹${ad.maxBid.toLocaleString("en-IN")}` : "—"} />
+            <Row label="Target" value={ad.targetType ? `${titleCase(ad.targetType.toLowerCase())} · ${ad.destination || "—"}` : (ad.destination || "—")} />
+            <Row label="Cost per click" value={`${cpc.toLocaleString("en-IN")} Credit${cpc === 1 ? "" : "s"}`} />
             <Row label="Start date" value={ad.startDate ? formatDate(ad.startDate) : "—"} />
             <Row label="End date" value={ad.endDate ? formatDate(ad.endDate) : "—"} />
             <Row label="Created" value={formatDateTime(ad.createdAt)} />
