@@ -56,7 +56,7 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
 
   return (
     <div>
-      <PageHeader title="Available leads" subtitle="Preview matching leads. Buy Shared to add the lead to your marketplace, or Buy Exclusive to lock it to you alone." />
+      <PageHeader title="Leads" subtitle="Every enquiry on Moksh Booking. Buy Shared to add a lead to your marketplace, or Buy Exclusive to lock it to you alone. Leads other agents have already claimed appear here too — no personal info is shown." />
       <div className="mb-5 rounded-2xl border border-navy-100 bg-white px-4 py-3 text-sm font-semibold text-navy-800 shadow-sm">
         Lead Credits: {credits.toLocaleString("en-IN")}
         {credits === 0 && <Link href="/agent/wallet" className="ml-3 text-brand-700 hover:underline">Buy Credits</Link>}

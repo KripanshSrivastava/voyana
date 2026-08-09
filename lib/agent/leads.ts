@@ -7,7 +7,14 @@ import type { Prisma } from "@prisma/client";
 // exclusive purchase — which jumps assignmentCount straight to maxAgents).
 // Including it here would show unbuyable leads in the marketplace and inflate
 // the paginated total. See lib/leads/purchase.ts for the status transition.
-const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED"];
+// Statuses shown on the agent-facing Leads grid. We include IN_PROGRESS
+// (fully sold to the max number of agents) and CONVERTED (booking won by
+// some agent) too — those leads render as "Fully distributed" / "Already
+// yours" and keep the marketplace looking populated even when no fresh
+// enquiries are available to buy. Terminal-negative statuses (LOST,
+// INVALID, DUPLICATE, NEW-not-yet-published, CONTACTED-pre-marketplace)
+// stay excluded — nothing useful for an agent to see there.
+const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED", "IN_PROGRESS", "CONVERTED"];
 
 type AvailableLeadItem = Prisma.LeadGetPayload<{
   include: {
@@ -261,11 +268,11 @@ export async function searchAvailableLeads(agentId: string, filters: AvailableLe
       },
     }),
   ]);
-  // Fully-sold leads are hidden UNLESS this agent already owns one of the
-  // slots — in which case they must still be visible so the agent can open
-  // and work the lead. This is what keeps the grid from ever going blank.
-  const filtered = items.filter((l) => l._count.assignments < l.maxAgents || l.assignments.length > 0);
-  return { items: filtered, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
+  // Show every priced, active lead — including fully-sold ones bought by
+  // other agents. This keeps the marketplace looking populated even during
+  // slow periods; the card enforces "Already yours" / "Fully distributed"
+  // states so agents can't accidentally re-buy or overbuy anything.
+  return { items, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }
 
 export async function getAgentLead(agentId: string, leadId: string) {

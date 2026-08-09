@@ -11,7 +11,7 @@ import { NotificationBadge } from "@/components/agent/NotificationBadge";
 
 const BASE_NAV = [
   { href: "/agent/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agent/leads", label: "Available Leads", icon: ShoppingBag },
+  { href: "/agent/leads", label: "Leads", icon: ShoppingBag },
   { href: "/agent/purchases", label: "My Leads", icon: Briefcase },
   { href: "/agent/preferences", label: "Alerts & Auto-Buy", icon: SlidersHorizontal },
   { href: "/agent/wallet", label: "Lead Credits", icon: Wallet },

@@ -20,6 +20,7 @@ type State = {
   destinationText: string;
   departureCity: string;
   travelDate: string;
+  nights: string;
   adults: string;
   children: string;
   budget: string;
@@ -35,6 +36,7 @@ const STEPS = [
   "Destination",
   "Departure",
   "Dates",
+  "Duration",
   "Travelers",
   "Budget",
   "Trip type",
@@ -51,6 +53,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
     destinationText: prefill?.destination ?? "",
     departureCity: "",
     travelDate: "",
+    nights: "",
     adults: "2",
     children: "0",
     budget: "",
@@ -72,7 +75,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
 
   function canAdvance(): boolean {
     if (step === 0) return form.destinationText.trim().length > 1;
-    if (step === 7) return form.customerName.trim().length > 1 && form.phone.trim().length >= 7;
+    if (step === STEPS.length - 1) return form.customerName.trim().length > 1 && form.phone.trim().length >= 7;
     return true;
   }
 
@@ -104,6 +107,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
           destinationText: form.destinationText,
           departureCity: form.departureCity || undefined,
           travelDate: form.travelDate || undefined,
+          nights: form.nights ? Number(form.nights) : undefined,
           // Send both the split and the total — total feeds legacy consumers
           // (older analytics, admin summaries) while adults/children are the
           // richer breakdown displayed in every new lead surface.
@@ -188,6 +192,23 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
           </Field>
         )}
         {step === 3 && (
+          <Field label="How long is the trip?" hint="Nights only — days are shown automatically as nights + 1.">
+            <Input
+              type="number"
+              min={1}
+              max={60}
+              placeholder="e.g. 5"
+              value={form.nights}
+              onChange={(e) => set({ nights: e.target.value })}
+            />
+            {form.nights && Number(form.nights) > 0 && (
+              <p className="mt-1 text-xs text-navy-500">
+                {form.nights} nights / {Number(form.nights) + 1} days
+              </p>
+            )}
+          </Field>
+        )}
+        {step === 4 && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="How many adults?" hint="12 years and above.">
               <Input
@@ -207,7 +228,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
             </Field>
           </div>
         )}
-        {step === 4 && (
+        {step === 5 && (
           <Field label="What's your approximate budget (per trip, ₹)?" hint="Optional.">
             <Input
               type="number"
@@ -218,7 +239,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
             />
           </Field>
         )}
-        {step === 5 && (
+        {step === 6 && (
           <Field label="What kind of trip is this?">
             <div className="flex flex-wrap gap-2">
               {TRIP_TYPES.map((t) => (
@@ -239,7 +260,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
             </div>
           </Field>
         )}
-        {step === 6 && (
+        {step === 7 && (
           <Field label="What do you need help with?">
             <div className="flex flex-wrap gap-2">
               {REQUIREMENTS.map((r) => (
@@ -270,7 +291,7 @@ export function QuoteForm({ prefill }: { prefill?: QuotePrefill }) {
             </div>
           </Field>
         )}
-        {step === 7 && (
+        {step === 8 && (
           <div className="space-y-4">
             <Field label="Your name">
               <Input

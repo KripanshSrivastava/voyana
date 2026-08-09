@@ -55,7 +55,7 @@ export default async function AgentDashboard() {
       {availableResult.items.length > 0 ? (
         <div className="mt-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-navy-900">Available now</h2>
+            <h2 className="font-semibold text-navy-900">Leads</h2>
             {availableCount > DASHBOARD_AVAILABLE_LIMIT && (
               <Link href="/agent/leads" className="flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">
                 Browse all {availableCount.toLocaleString("en-IN")} <ArrowRight className="h-4 w-4" />
