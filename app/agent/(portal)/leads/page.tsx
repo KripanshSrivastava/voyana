@@ -85,13 +85,21 @@ export default async function AgentLeadsPage({ searchParams }: { searchParams?: 
                 travelDate: l.travelDate,
                 travelDateText: l.travelDateText,
                 createdAt: l.createdAt,
-                assignmentCount: l._count.assignments,
+                clientLocation: l.clientLocation,
+                departureCity: l.departureCity,
+                // Use the denormalised `assignmentCount` column, NOT the row
+                // count. An EXCLUSIVE purchase consumes every slot at once
+                // (assignmentCount jumps to maxAgents while only one
+                // LeadAssignment row exists), and purchaseLead() gates on this
+                // column. Reading the row count here made the card advertise
+                // free slots the server would then reject.
+                assignmentCount: l.assignmentCount,
                 maxAgents: l.maxAgents,
               }}
               shared={computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "SHARED", settings })}
               exclusive={{
                 ...computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "EXCLUSIVE", settings }),
-                eligible: exclusiveEligible(l._count.assignments),
+                eligible: exclusiveEligible(l.assignmentCount),
               }}
               exclusiveOnly={requiresExclusive(l.tripCategory)}
               canBuy={canBuy}

@@ -5,7 +5,7 @@ import { getFlags } from "@/lib/flags";
 
 export default async function HomePage() {
   const [destinations, packages, tours, settings, vendors, flags] = await Promise.all([
-    getFeaturedDestinations(6),
+    getFeaturedDestinations(8),
     getFeaturedPackages("PACKAGE", 6),
     getFeaturedPackages("TOUR", 3),
     getPublicSettings(),
@@ -22,6 +22,7 @@ export default async function HomePage() {
 
   return (
     <LandingLeadExperience
+      brandName={settings.brandName}
       heroImage={heroImage}
       vendors={vendors.map((v) => ({
         id: v.id,
@@ -48,6 +49,7 @@ export default async function HomePage() {
         heroImage: d.heroImage,
         startingPrice: d.startingPrice,
         tripTypes: d.tripTypes,
+        category: d.category,
         _count: d._count,
       }))}
       packages={packages.map((p) => ({

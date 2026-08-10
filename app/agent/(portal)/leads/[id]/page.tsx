@@ -25,7 +25,12 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
   // matches what the purchase route will actually deduct.
   const sharedCharge = computeLeadCharge({ tripCategory: lead.tripCategory, purchaseType: "SHARED", settings });
   const exclusiveCharge = computeLeadCharge({ tripCategory: lead.tripCategory, purchaseType: "EXCLUSIVE", settings });
-  const exclEligible = exclusiveEligible(lead._count.assignments);
+  // Capacity/eligibility must read the same denormalised column that
+  // purchaseLead() enforces. The LeadAssignment row count under-reports for
+  // exclusively-purchased leads (one row consumes every slot), which made
+  // this page offer Buy buttons the server then rejected with
+  // "This lead is fully distributed."
+  const exclEligible = exclusiveEligible(lead.assignmentCount);
   const exclusiveOnly = requiresExclusive(lead.tripCategory);
   const requirements = parseJson<string[]>(lead.requirements, []);
   // For a lead the agent has already purchased, the header should show WHAT
@@ -35,7 +40,7 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
   // to advertise the current cost.
   const price = owned && assignment ? assignment.price : (lead.price ?? 0);
   const priceCredits = priceToCredits(price);
-  const full = lead._count.assignments >= lead.maxAgents;
+  const full = lead.assignmentCount >= lead.maxAgents;
   const credits = agent.creditBalance?.balance ?? 0;
   const whatsapp = lead.phone.replace(/[^\d]/g, "");
   const travellers = leadTravellersLabel({ travelers: lead.travelers, adults: lead.adults, children: lead.children });
@@ -49,7 +54,7 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
       <PageHeader
         title={lead.code}
         subtitle={owned ? "You have access to this lead." : "Preview - purchase to unlock contact details."}
-        action={<Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{lead._count.assignments}/{lead.maxAgents} sold</Badge>}
+        action={<Badge className="bg-navy-100 text-navy-700 ring-navy-500/20">{lead.assignmentCount}/{lead.maxAgents} sold</Badge>}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">

@@ -80,13 +80,19 @@ export default async function AgentDashboard() {
                   travelDate: l.travelDate,
                   travelDateText: l.travelDateText,
                   createdAt: l.createdAt,
-                  assignmentCount: l._count.assignments,
+                  clientLocation: l.clientLocation,
+                  departureCity: l.departureCity,
+                  // See /agent/leads: capacity comes from the denormalised
+                  // column that purchaseLead() actually enforces, not the
+                  // LeadAssignment row count (an exclusive buy consumes all
+                  // slots with a single row).
+                  assignmentCount: l.assignmentCount,
                   maxAgents: l.maxAgents,
                 }}
                 shared={computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "SHARED", settings })}
                 exclusive={{
                   ...computeLeadCharge({ tripCategory: l.tripCategory, purchaseType: "EXCLUSIVE", settings }),
-                  eligible: exclusiveEligible(l._count.assignments),
+                  eligible: exclusiveEligible(l.assignmentCount),
                 }}
                 exclusiveOnly={requiresExclusive(l.tripCategory)}
                 canBuy={canBuy}

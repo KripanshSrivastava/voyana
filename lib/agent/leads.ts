@@ -244,8 +244,10 @@ export async function getAvailableLeads(agentId: string) {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { assignments: true } }, destination: { select: { name: true } } },
   });
-  // Enforce capacity at read time too (belt and suspenders).
-  return leads.filter((l) => l._count.assignments < l.maxAgents);
+  // Enforce capacity at read time too (belt and suspenders). Uses the
+  // denormalised column — the same one purchaseLead() gates on — because an
+  // exclusive purchase consumes every slot with a single assignment row.
+  return leads.filter((l) => l.assignmentCount < l.maxAgents);
 }
 
 export async function searchAvailableLeads(agentId: string, filters: AvailableLeadFilters): Promise<LeadListPage<AvailableLeadItem>> {

@@ -1,0 +1,92 @@
+/*
+ * MokshBooking homepage design tokens.
+ *
+ * These are the EXACT oklch values from the approved design comp — warm cream
+ * ground, near-black warm ink, terracotta accent. They are deliberately scoped
+ * to `.mb-home` so they never leak into the agent portal or admin panel, which
+ * keep the existing navy/teal system.
+ */
+.mb-home {
+  /* ground + ink */
+  --mb-bg: oklch(0.975 0.007 60);
+  --mb-ink: oklch(0.17 0.01 30);
+  --mb-muted: oklch(0.42 0.015 30);
+  --mb-muted-2: oklch(0.55 0.015 30);
+  --mb-muted-3: oklch(0.5 0.015 30);
+
+  /* terracotta accent */
+  --mb-accent: oklch(0.55 0.11 32);
+  --mb-accent-dark: oklch(0.38 0.09 32);
+  --mb-accent-light: oklch(0.75 0.09 32);
+
+  /* rules + surfaces */
+  --mb-line: oklch(0.87 0.01 55);
+  --mb-line-2: oklch(0.9 0.008 55);
+  --mb-line-3: oklch(0.92 0.008 55);
+  --mb-surface: oklch(0.95 0.009 60);
+  --mb-cream-hover: oklch(0.9 0.01 40);
+
+  /* on-dark + misc */
+  --mb-on-dark: oklch(0.95 0.01 40 / 0.9);
+  --mb-green: oklch(0.6 0.13 145);
+  --mb-scrim: oklch(0.15 0.02 30 / 0.55);
+
+  background: var(--mb-bg);
+  color: var(--mb-ink);
+  font-family: var(--font-home-sans), -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mb-home h1,
+.mb-home h2,
+.mb-home h3 {
+  font-family: var(--font-home-display), Georgia, serif;
+  font-weight: 400;
+  margin: 0;
+}
+
+.mb-home a {
+  color: var(--mb-accent);
+  text-decoration: none;
+}
+
+.mb-home a:hover {
+  color: var(--mb-accent-dark);
+}
+
+.mb-home * {
+  box-sizing: border-box;
+}
+
+/* Scroll-reveal: elements start offset and fade up when observed. */
+.mb-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.mb-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Card hover lift — kept in CSS so the JS tilt handler can compose with it
+   by writing only `transform` inline. */
+.mb-card {
+  transition: transform 0.15s ease-out, box-shadow 0.25s ease;
+  box-shadow: 0 1px 2px oklch(0.2 0.02 30 / 0.04);
+}
+
+.mb-card:hover {
+  box-shadow: 0 22px 40px oklch(0.2 0.02 30 / 0.16);
+}
+
+.mb-card img,
+.mb-card .mb-zoom {
+  transition: transform 0.35s ease;
+}
+
+.mb-card:hover img,
+.mb-card:hover .mb-zoom {
+  transform: scale(1.08);
+}
