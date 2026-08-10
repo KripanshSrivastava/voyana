@@ -11,18 +11,55 @@ import { BadgeCheck } from "lucide-react";
 
 export default async function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const agent = await prisma.agent.findUnique({
-    where: { id },
-    include: {
-      user: true,
-      wallet: { include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } } },
-      assignments: { include: { lead: true }, orderBy: { purchasedAt: "desc" } },
-    },
-  });
+  // Fetch in three parallel scoped queries instead of one large `include`:
+  //  - The agent row itself (with narrow user/wallet projections).
+  //  - A capped page of recent assignments — the table is not paginated in
+  //    the UI, so unbounded loading of every historical purchase used to
+  //    ship the entire Lead record for each row (message, UTM columns,
+  //    attribution, dedup pointers — 40+ fields × N rows).
+  //  - Server-side aggregations for the stat cards (totalSpent, purchased,
+  //    won). Previously computed in JS after loading every row.
+  const RECENT_ASSIGNMENTS_LIMIT = 50;
+  const [agent, purchasedAggregate, wonCount, recentAssignments] = await Promise.all([
+    prisma.agent.findUnique({
+      where: { id },
+      include: {
+        user: { select: { name: true, email: true } },
+        wallet: {
+          include: {
+            transactions: {
+              orderBy: { createdAt: "desc" },
+              take: 20,
+              select: { id: true, type: true, amount: true, description: true, createdAt: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.leadAssignment.aggregate({
+      where: { agentId: id },
+      _sum: { price: true },
+      _count: { _all: true },
+    }),
+    prisma.leadAssignment.count({ where: { agentId: id, status: "WON" } }),
+    prisma.leadAssignment.findMany({
+      where: { agentId: id },
+      orderBy: { purchasedAt: "desc" },
+      take: RECENT_ASSIGNMENTS_LIMIT,
+      select: {
+        id: true,
+        leadId: true,
+        price: true,
+        status: true,
+        lead: { select: { code: true, destinationText: true } },
+      },
+    }),
+  ]);
   if (!agent) notFound();
 
-  const totalSpent = agent.assignments.reduce((s, a) => s + a.price, 0);
-  const won = agent.assignments.filter((a) => a.status === "WON").length;
+  const totalSpent = purchasedAggregate._sum.price ?? 0;
+  const totalPurchases = purchasedAggregate._count._all;
+  const won = wonCount;
 
   return (
     <div>
@@ -45,15 +82,20 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Wallet balance" value={formatINR(agent.wallet?.balance ?? 0)} accent="brand" />
         <StatCard label="Total spent" value={formatINR(totalSpent)} accent="navy" />
-        <StatCard label="Leads purchased" value={agent.assignments.length} accent="sun" />
+        <StatCard label="Leads purchased" value={totalPurchases} accent="sun" />
         <StatCard label="Won" value={won} accent="emerald" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="mb-4 font-semibold text-navy-900">Purchased leads</h2>
-            {agent.assignments.length === 0 ? (
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-semibold text-navy-900">Purchased leads</h2>
+              {totalPurchases > RECENT_ASSIGNMENTS_LIMIT && (
+                <span className="text-xs text-navy-400">Showing latest {RECENT_ASSIGNMENTS_LIMIT} of {totalPurchases}</span>
+              )}
+            </div>
+            {recentAssignments.length === 0 ? (
               <p className="text-sm text-navy-400">No purchases yet.</p>
             ) : (
               <div className="overflow-x-auto scroll-slim">
@@ -67,7 +109,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-navy-50">
-                    {agent.assignments.map((a) => (
+                    {recentAssignments.map((a) => (
                       <tr key={a.id}>
                         <td className="py-2.5 pr-4">
                           <Link href={`/admin/leads/${a.leadId}`} className="font-medium text-brand-700 hover:underline">{a.lead.code}</Link>

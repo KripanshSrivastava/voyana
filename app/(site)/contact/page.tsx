@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/ui";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Contact" };
+export const revalidate = 3600;
 
 export default async function ContactPage() {
   const s = await getPublicSettings();

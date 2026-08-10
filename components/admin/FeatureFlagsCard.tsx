@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Check } from "lucide-react";
 import { Card } from "@/components/ui";
+import { toast } from "@/components/ui/Toast";
 
 type Flags = {
   vendorAdsEnabled: boolean;
@@ -30,7 +31,11 @@ export function FeatureFlagsCard({ initial }: { initial: Flags }) {
   const [savedKey, setSavedKey] = useState<keyof Flags | null>(null);
 
   async function toggle(key: keyof Flags) {
-    const next = !flags[key];
+    if (busyKey) return; // prevent duplicate submissions across flags
+    const previous = flags[key];
+    const next = !previous;
+    // Optimistic: flip the switch instantly.
+    setFlags((f) => ({ ...f, [key]: next }));
     setBusyKey(key);
     setError(null);
     setSavedKey(null);
@@ -42,11 +47,14 @@ export function FeatureFlagsCard({ initial }: { initial: Flags }) {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Could not update this flag.");
-      setFlags((f) => ({ ...f, [key]: next }));
       setSavedKey(key);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not update this flag.");
+      // Roll back the switch and surface the error.
+      setFlags((f) => ({ ...f, [key]: previous }));
+      const msg = e instanceof Error ? e.message : "Could not update this flag.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusyKey(null);
     }

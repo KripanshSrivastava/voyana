@@ -79,11 +79,6 @@ export const PATCH = handler(async (req: Request) => {
   if (!Number.isInteger(priceInr) || priceInr <= 0) return fail("Enter a valid package price.", 422);
   if (!Number.isInteger(displayOrder)) return fail("Enter a valid display order.", 422);
 
-  if (isActive) {
-    const activeCount = await prisma.leadCreditPackage.count({ where: { isActive: true, id: { not: id } } });
-    if (activeCount >= 2) return fail("Only 2 active Lead Credit packages are allowed for the MVP.", 409);
-  }
-
   const pkg = await prisma.leadCreditPackage.update({
     where: { id },
     data: { name, credits, priceInr, isActive, displayOrder, paymentQrUrl },

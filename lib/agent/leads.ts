@@ -16,17 +16,55 @@ import type { Prisma } from "@prisma/client";
 // stay excluded — nothing useful for an agent to see there.
 const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED", "IN_PROGRESS", "CONVERTED"];
 
-type AvailableLeadItem = Prisma.LeadGetPayload<{
-  include: {
-    _count: { select: { assignments: true } };
-    destination: { select: { name: true } };
-    assignments: { select: { id: true } };
-  };
-}>;
+// Narrow projections — the marketplace card + purchases table only need a
+// handful of fields, and pre-purchase agents must never see phone/email/name.
+// Keeping the shape as a Prisma `select` (not a full `include`) also strips
+// ~20 UTM/attribution/dedup columns from every row on the wire.
+const AVAILABLE_LEAD_SELECT = {
+  id: true,
+  destinationText: true,
+  tripType: true,
+  tripCategory: true,
+  travelers: true,
+  adults: true,
+  children: true,
+  nights: true,
+  requirements: true,
+  travelDate: true,
+  travelDateText: true,
+  clientLocation: true,
+  departureCity: true,
+  createdAt: true,
+  assignmentCount: true,
+  maxAgents: true,
+  destination: { select: { name: true } },
+  // Only fetch THIS agent's assignment row (never other agents') so the
+  // card can render "Already yours" without leaking who else bought it.
+  assignments: { select: { id: true }, take: 1 },
+} satisfies Prisma.LeadSelect;
 
-type AgentPurchaseItem = Prisma.LeadAssignmentGetPayload<{
-  include: { lead: { include: { destination: { select: { name: true } } } } };
-}>;
+const AGENT_PURCHASE_SELECT = {
+  id: true,
+  leadId: true,
+  price: true,
+  status: true,
+  purchasedAt: true,
+  lead: {
+    select: {
+      customerName: true,
+      phone: true,
+      email: true,
+      destinationText: true,
+      tripType: true,
+      tripCategory: true,
+      destination: { select: { name: true } },
+    },
+  },
+} satisfies Prisma.LeadAssignmentSelect;
+
+type AvailableLeadItem = Prisma.LeadGetPayload<{ select: typeof AVAILABLE_LEAD_SELECT }>;
+
+type AgentPurchaseItem = Prisma.LeadAssignmentGetPayload<{ select: typeof AGENT_PURCHASE_SELECT }>;
 
 export type LeadListPage<T> = {
   items: T[];
@@ -261,11 +299,8 @@ export async function searchAvailableLeads(agentId: string, filters: AvailableLe
       orderBy: buildAvailableOrder(filters.sort),
       skip: (page - 1) * limit,
       take: limit,
-      include: {
-        _count: { select: { assignments: true } },
-        destination: { select: { name: true } },
-        // Only fetch THIS agent's assignment row (never other agents') so the
-        // card can render "Already yours" without leaking who else bought it.
+      select: {
+        ...AVAILABLE_LEAD_SELECT,
         assignments: { where: { agentId }, select: { id: true }, take: 1 },
       },
     }),
@@ -311,7 +346,7 @@ export async function searchAgentPurchases(agentId: string, filters: MyLeadFilte
       orderBy: buildAssignmentOrder(filters.sort),
       skip: (page - 1) * limit,
       take: limit,
-      include: { lead: { include: { destination: { select: { name: true } } } } },
+      select: AGENT_PURCHASE_SELECT,
     }),
   ]);
   return { items, page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };

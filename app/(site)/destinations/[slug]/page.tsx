@@ -7,7 +7,8 @@ import { getPublishedPackages } from "@/lib/cms/queries";
 import { PackageCard } from "@/components/site/ContentCards";
 import { ButtonLink, EmptyState } from "@/components/ui";
 import { parseJson } from "@/lib/utils";
-import { prisma } from "@/lib/db";
+
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
@@ -15,7 +16,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const d = await prisma.destination.findFirst({ where: { slug, published: true } });
+  // Shares the request-scoped cache with the page body — one DB read total.
+  const d = await getDestinationBySlug(slug);
   if (!d) return { title: "Destination not found" };
   return {
     title: d.seoTitle || d.name,

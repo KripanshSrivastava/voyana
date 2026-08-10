@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getFlags } from "@/lib/flags";
 import { getPublicSettings } from "@/lib/settings";
 import { AgentShell } from "@/components/agent/AgentShell";
+import { Toaster } from "@/components/ui/Toast";
 
 export const metadata = { title: "Agent Portal", robots: { index: false } };
 
@@ -35,6 +36,7 @@ export default async function AgentPortalLayout({ children }: { children: React.
       logoUrl={settings.logoUrl}
     >
       {children}
+      <Toaster />
     </AgentShell>
   );
 }

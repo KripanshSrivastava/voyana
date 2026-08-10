@@ -35,7 +35,7 @@ export default async function AdminPricingPage() {
       </div>
 
       {packages.length === 0 ? (
-        <EmptyState title="No Lead Credit packages" description="Run the seed or migration to create the two MVP packages." />
+        <EmptyState title="No Lead Credit packages" description="Create a package below, or run the seed to load defaults." />
       ) : (
         <LeadCreditPackagesManager packages={packages} />
       )}

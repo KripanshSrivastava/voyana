@@ -37,7 +37,24 @@ export default async function AdminLeadsPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { _count: { select: { assignments: true } } },
+      // Only the columns the table renders — strips 25+ UTM/attribution/dedup
+      // fields plus large text columns (message, requirements) from the wire.
+      select: {
+        id: true,
+        code: true,
+        customerName: true,
+        phone: true,
+        destinationText: true,
+        budget: true,
+        utmSource: true,
+        quality: true,
+        status: true,
+        price: true,
+        createdAt: true,
+        isDuplicate: true,
+        maxAgents: true,
+        _count: { select: { assignments: true } },
+      },
     }),
     prisma.lead.count({ where }),
   ]);

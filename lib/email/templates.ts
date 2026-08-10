@@ -179,6 +179,23 @@ export function supportTicketReply(p: { name: string; ticketRef: string; url: st
   };
 }
 
+export function adminInviteEmail(p: { name: string; adminRole: string; inviterName?: string | null; link: string }) {
+  // Same "never log the raw link" rule as passwordResetEmail — the action_link
+  // is a one-time credential that grants a set-password session on click.
+  const roleLabel = p.adminRole.replace(/_/g, " ");
+  const inviter = p.inviterName ? escapeHtml(p.inviterName) : "The team";
+  return {
+    subject: `You're invited to the ${BRAND} admin panel`,
+    html: shell(`Welcome to the ${BRAND} admin panel`, `
+      <p>Hi ${escapeHtml(p.name)},</p>
+      <p>${inviter} has invited you to join the ${BRAND} admin panel as a <strong>${escapeHtml(roleLabel)}</strong>.</p>
+      <p>Click the button below to accept the invite and set your password. For security, this link can only be used once and will expire.</p>
+      <p style="margin:20px 0"><a href="${p.link}" style="background:#f97316;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:600">Set your password</a></p>
+      <p style="color:#48608b;font-size:14px">If the button doesn't work, copy this link into your browser:<br><span style="word-break:break-all;color:#6a80a8">${escapeHtml(p.link)}</span></p>
+      <p style="color:#9aabc9;font-size:12px">If you weren't expecting this invite, you can safely ignore this email — no account will be activated until the link is used.</p>`),
+  };
+}
+
 export function passwordResetEmail(p: { name: string; link: string; expiresMinutes: number }) {
   // NEVER put the raw token in log output — the link itself contains it.
   // This template renders it inside an <a href> only; nothing else logs `p.link`.

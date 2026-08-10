@@ -3,6 +3,7 @@ import { ButtonLink } from "@/components/ui";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "About" };
+export const revalidate = 3600;
 
 export default async function AboutPage() {
   const s = await getPublicSettings();

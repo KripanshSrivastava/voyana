@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma, withReadRetry } from "./db";
 import { parseJson } from "./utils";
 import { cached } from "./cache/publicCache";
@@ -31,26 +32,44 @@ export async function getSiteSettings() {
   });
 }
 
-export async function getPublicSettings() {
-  return cached("site-settings", 120, async () => {
-    const s = await getSiteSettings();
-    return {
-      brandName: s.brandName,
-      tagline: s.tagline,
-      logoUrl: s.logoUrl,
-      faviconUrl: s.faviconUrl,
-      heroImage: s.heroImage,
-      phone: s.phone,
-      whatsapp: s.whatsapp,
-      email: s.email,
-      address: s.address,
-      footerText: s.footerText,
-      socials: parseJson<Socials>(s.socials, {}),
-      defaultSeoTitle: s.defaultSeoTitle,
-      defaultSeoDescription: s.defaultSeoDescription,
-      gaId: s.gaId,
-      metaPixelId: s.metaPixelId,
-      googleAdsId: s.googleAdsId,
-    };
-  });
-}
+/**
+ * Public settings render on every page's layout. Two layers:
+ *
+ *  1. Next.js `unstable_cache` — participates in Next's own data cache, so
+ *     static prerender doesn't bail to dynamic (which the raw Upstash REST
+ *     `no-store` fetch used to do), and pages with `export const revalidate`
+ *     actually get cached HTML.
+ *  2. Upstash Redis (via `cached()`) — cross-instance cache when Next's
+ *     per-instance data cache misses, so a cold Vercel invocation still
+ *     avoids the DB round-trip.
+ *
+ * Invalidation: admin mutations call `revalidateTag("site-settings")` from
+ * lib/cache/revalidate.ts, which flushes both layers.
+ */
+export const getPublicSettings = unstable_cache(
+  async () => {
+    return cached("site-settings", 120, async () => {
+      const s = await getSiteSettings();
+      return {
+        brandName: s.brandName,
+        tagline: s.tagline,
+        logoUrl: s.logoUrl,
+        faviconUrl: s.faviconUrl,
+        heroImage: s.heroImage,
+        phone: s.phone,
+        whatsapp: s.whatsapp,
+        email: s.email,
+        address: s.address,
+        footerText: s.footerText,
+        socials: parseJson<Socials>(s.socials, {}),
+        defaultSeoTitle: s.defaultSeoTitle,
+        defaultSeoDescription: s.defaultSeoDescription,
+        gaId: s.gaId,
+        metaPixelId: s.metaPixelId,
+        googleAdsId: s.googleAdsId,
+      };
+    });
+  },
+  ["public-settings"],
+  { revalidate: 120, tags: ["site-settings"] },
+);

@@ -16,6 +16,7 @@ export default async function AdminDashboard() {
     rev, series, recent,
     pendingAgents, approvedAgents,
     pubDest, pubPkg, pubTour,
+    totalLeads,
   ] = await Promise.all([
     prisma.lead.count({ where: { status: "NEW" } }),
     prisma.lead.count({ where: { status: "QUALIFIED" } }),
@@ -24,15 +25,20 @@ export default async function AdminDashboard() {
     prisma.lead.count({ where: { status: "CONVERTED" } }),
     revenueWindows(),
     dailyRevenueSeries(14),
-    prisma.lead.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+    // Only the columns the recent-leads table actually renders — trims ~30
+    // unused fields (UTM/attribution/dedup pointers/message) per row.
+    prisma.lead.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, code: true, customerName: true, destinationText: true, quality: true, status: true, createdAt: true },
+    }),
     prisma.agent.count({ where: { status: "PENDING" } }),
     prisma.agent.count({ where: { status: "APPROVED" } }),
     prisma.destination.count({ where: { published: true } }),
     prisma.tourPackage.count({ where: { published: true, kind: "PACKAGE" } }),
     prisma.tourPackage.count({ where: { published: true, kind: "TOUR" } }),
+    prisma.lead.count(),
   ]);
-
-  const totalLeads = await prisma.lead.count();
 
   return (
     <div>

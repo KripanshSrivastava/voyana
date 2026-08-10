@@ -3,6 +3,7 @@ import { ClipboardList, Users, MessagesSquare, PlaneTakeoff } from "lucide-react
 import { ButtonLink } from "@/components/ui";
 
 export const metadata: Metadata = { title: "How It Works" };
+export const revalidate = 3600;
 
 const STEPS = [
   { icon: ClipboardList, title: "Share your trip", body: "Tell us your destination, dates, travelers and budget in a couple of minutes." },

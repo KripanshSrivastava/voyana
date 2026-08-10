@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Terms & Conditions" };
+export const revalidate = 3600;
 
 export default async function TermsPage() {
   const s = await getPublicSettings();

@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Guided tours and experiences. Get personalized quotes from travel experts.",
 };
 
+export const revalidate = 300;
+
 export default async function ToursPage() {
   const tours = await getPublishedPackages({ kind: "TOUR" });
   return (

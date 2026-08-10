@@ -20,10 +20,10 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   authId       String?  @unique // Supabase auth.users UUID (identity lives in Supabase Auth)
-  passwordHash String?  // legacy — retained for rollback; Supabase Auth owns credentials now
+  passwordHash String? // legacy — retained for rollback; Supabase Auth owns credentials now
   name         String
   role         String   @default("CUSTOMER") // ADMIN | AGENT | CUSTOMER
-  adminRole    String?  // for ADMIN users: SUPER_ADMIN|LEAD_MANAGER|SALES_MANAGER|FINANCE_ADMIN|SUPPORT_ADMIN|MARKETING_ADMIN|CONTENT_ADMIN
+  adminRole    String? // for ADMIN users: SUPER_ADMIN|LEAD_MANAGER|SALES_MANAGER|FINANCE_ADMIN|SUPPORT_ADMIN|MARKETING_ADMIN|CONTENT_ADMIN
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -33,9 +33,9 @@ model User {
   // Defaults to true so existing rows (created before this feature existed)
   // are never retroactively locked out; only the agent-signup flow opts new
   // accounts into starting at false.
-  emailVerified   Boolean   @default(true)
-  emailVerifiedAt DateTime?
-  twoFactorEnabled Boolean  @default(false)
+  emailVerified    Boolean   @default(true)
+  emailVerifiedAt  DateTime?
+  twoFactorEnabled Boolean   @default(false)
 
   agent              Agent?
   notifications      Notification[]
@@ -48,8 +48,8 @@ model VerificationToken {
   id         String    @id @default(cuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       String    // EMAIL_VERIFY | TWO_FA
-  codeHash   String    // sha256 of the OTP — plaintext code is never stored
+  type       String // EMAIL_VERIFY | TWO_FA
+  codeHash   String // sha256 of the OTP — plaintext code is never stored
   expiresAt  DateTime
   consumedAt DateTime?
   attempts   Int       @default(0)
@@ -59,18 +59,18 @@ model VerificationToken {
 }
 
 model Agent {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyName String
   phone       String
   city        String?
-  status      String   @default("PENDING") // PENDING | APPROVED | SUSPENDED | REJECTED
+  status      String  @default("PENDING") // PENDING | APPROVED | SUSPENDED | REJECTED
 
   // personal profile
-  firstName    String?
-  lastName     String?
-  profileImage String?
+  firstName     String?
+  lastName      String?
+  profileImage  String?
   personalEmail String?
 
   // company profile
@@ -83,7 +83,7 @@ model Agent {
   socials        String? // JSON: { facebook, twitter, youtube, linkedin, googleBusiness }
 
   // verification (admin-controlled; vendor cannot self-verify)
-  verificationStatus String   @default("PENDING") // PENDING | UNDER_REVIEW | VERIFIED | REJECTED | SUSPENDED
+  verificationStatus String    @default("PENDING") // PENDING | UNDER_REVIEW | VERIFIED | REJECTED | SUSPENDED
   verifiedAt         DateTime?
   verifiedBy         String?
   verificationNotes  String?
@@ -91,21 +91,21 @@ model Agent {
   // preferences
   lowWalletThreshold Int?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  wallet       AgentWallet?
-  creditBalance AgentCreditBalance?
-  assignments  LeadAssignment[]
-  transactions WalletTransaction[]
-  payments     LeadPayment[]
-  topups       WalletTopup[]
-  creditPurchases LeadCreditPurchase[]
-  creditLedger    LeadCreditLedger[]
-  preference   AgentPreference?
-  spamReports  SpamReport[]
-  tickets      SupportTicket[]
-  ads          VendorAd[]
+  wallet                AgentWallet?
+  creditBalance         AgentCreditBalance?
+  assignments           LeadAssignment[]
+  transactions          WalletTransaction[]
+  payments              LeadPayment[]
+  topups                WalletTopup[]
+  creditPurchases       LeadCreditPurchase[]
+  creditLedger          LeadCreditLedger[]
+  preference            AgentPreference?
+  spamReports           SpamReport[]
+  tickets               SupportTicket[]
+  ads                   VendorAd[]
   submittedDestinations Destination[]
   submittedPackages     TourPackage[]
 }
@@ -116,56 +116,56 @@ model AgentPreference {
   agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   // lead alerts
-  alertEmail       Boolean @default(true)
-  alertInApp       Boolean @default(true)
-  alertCategories  String? // JSON array: DOMESTIC|INTERNATIONAL|INBOUND
-  alertDestinations String? // JSON array of keywords
+  alertEmail           Boolean   @default(true)
+  alertInApp           Boolean   @default(true)
+  alertCategories      String? // JSON array: DOMESTIC|INTERNATIONAL|INBOUND
+  alertDestinations    String? // JSON array of keywords
   alertClientLocations String? // JSON array of keywords
-  alertMinQuality  String? // POOR|AVERAGE|GOOD|EXCELLENT
-  alertMinBudget   Int?
-  alertMaxBudget   Int?
-  alertMinLeadPrice Int?
-  alertMaxLeadPrice Int?
-  alertTravelDateFrom DateTime?
-  alertTravelDateTo   DateTime?
-  alertTripTypes   String? // JSON array of keywords
+  alertMinQuality      String? // POOR|AVERAGE|GOOD|EXCELLENT
+  alertMinBudget       Int?
+  alertMaxBudget       Int?
+  alertMinLeadPrice    Int?
+  alertMaxLeadPrice    Int?
+  alertTravelDateFrom  DateTime?
+  alertTravelDateTo    DateTime?
+  alertTripTypes       String? // JSON array of keywords
 
   // auto-buy
-  autoBuyEnabled       Boolean @default(false)
-  autoBuyCategories    String? // JSON array
-  autoBuyDestinations  String? // JSON array of keywords
+  autoBuyEnabled         Boolean   @default(false)
+  autoBuyCategories      String? // JSON array
+  autoBuyDestinations    String? // JSON array of keywords
   autoBuyClientLocations String? // JSON array of keywords
-  autoBuyMinQuality    String?
-  autoBuyMinBudget     Int?
-  autoBuyMaxBudget     Int?
-  autoBuyMaxPrice      Int?
-  autoBuyTravelDateFrom DateTime?
-  autoBuyTravelDateTo   DateTime?
-  autoBuyTripTypes     String? // JSON array of keywords
-  autoBuyDailyLimit    Int?
-  autoBuyMonthlyBudget Int?
+  autoBuyMinQuality      String?
+  autoBuyMinBudget       Int?
+  autoBuyMaxBudget       Int?
+  autoBuyMaxPrice        Int?
+  autoBuyTravelDateFrom  DateTime?
+  autoBuyTravelDateTo    DateTime?
+  autoBuyTripTypes       String? // JSON array of keywords
+  autoBuyDailyLimit      Int?
+  autoBuyMonthlyBudget   Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model SpamReport {
-  id           String   @id @default(cuid())
-  leadId       String
-  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  agentId      String
-  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  leadAssignmentId String?
-  leadAssignment   LeadAssignment? @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
-  reason       String   // wrong_number|fake|duplicate|not_interested|invalid|already_booked|other
-  notes        String?
-  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  resolution   String?  // refund | credit | none
-  createdAt    DateTime @default(now())
-  reviewedAt   DateTime?
-  reviewedBy   String?
-  refundedAt   DateTime?
-  refundAmount Int?
+  id                        String          @id @default(cuid())
+  leadId                    String
+  lead                      Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId                   String
+  agent                     Agent           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  leadAssignmentId          String?
+  leadAssignment            LeadAssignment? @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
+  reason                    String // wrong_number|fake|duplicate|not_interested|invalid|already_booked|other
+  notes                     String?
+  status                    String          @default("PENDING") // PENDING | APPROVED | REJECTED
+  resolution                String? // refund | credit | none
+  createdAt                 DateTime        @default(now())
+  reviewedAt                DateTime?
+  reviewedBy                String?
+  refundedAt                DateTime?
+  refundAmount              Int?
   refundWalletTransactionId String?
 
   @@unique([leadId, agentId])
@@ -182,52 +182,52 @@ model SupportTicket {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages  SupportMessage[]
+  messages SupportMessage[]
 
   @@index([status])
   @@index([agentId])
 }
 
 model SupportMessage {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   ticketId    String
   ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  authorType  String   // AGENT | ADMIN
+  authorType  String // AGENT | ADMIN
   authorLabel String?
   body        String
-  internal    Boolean  @default(false) // admin-only internal note
-  createdAt   DateTime @default(now())
+  internal    Boolean       @default(false) // admin-only internal note
+  createdAt   DateTime      @default(now())
 
   @@index([ticketId])
 }
 
 model VendorAd {
-  id             String   @id @default(cuid())
-  agentId        String
-  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  title          String
-  description    String?
-  imageUrl       String?
+  id                 String    @id @default(cuid())
+  agentId            String
+  agent              Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title              String
+  description        String?
+  imageUrl           String?
   // Ads now point at a piece of vendor-owned CMS content — either a
   // Destination or a TourPackage (tour or package) they've submitted and
   // had approved. `landingUrl` is derived server-side from the target
   // (e.g. /destinations/[slug]) and kept as a materialised column so the
   // public ad renderer stays trivial.
-  landingUrl     String?
-  destination    String?  // Denormalised display name for the public card.
-  targetType     String?  // DESTINATION | PACKAGE | TOUR
+  landingUrl         String?
+  destination        String? // Denormalised display name for the public card.
+  targetType         String? // DESTINATION | PACKAGE | TOUR
   targetSubmissionId String? // FK-like: id of Destination or TourPackage. No @relation — the target model differs by targetType, so referential integrity is enforced application-side in /api/agent/ads.
-  clientLocation String?  // DEPRECATED: kept for legacy rows. Not written by new ads.
-  category       String?  // DEPRECATED
-  dailyBudget    Int?     // DEPRECATED
-  maxBid         Int?     // DEPRECATED
-  startDate      DateTime?
-  endDate        DateTime?
-  status         String   @default("DRAFT") // DRAFT|PENDING|APPROVED|REJECTED|PAUSED|EXPIRED
-  impressions    Int      @default(0)
-  clicks         Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  clientLocation     String? // DEPRECATED: kept for legacy rows. Not written by new ads.
+  category           String? // DEPRECATED
+  dailyBudget        Int? // DEPRECATED
+  maxBid             Int? // DEPRECATED
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String    @default("DRAFT") // DRAFT|PENDING|APPROVED|REJECTED|PAUSED|EXPIRED
+  impressions        Int       @default(0)
+  clicks             Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([status])
   @@index([agentId])
@@ -235,19 +235,19 @@ model VendorAd {
 }
 
 model WalletTopup {
-  id         String   @id @default(cuid())
-  agentId    String
-  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  amount     Int      // whole rupees
-  currency   String   @default("INR")
-  provider   String   @default("razorpay")
-  orderId    String   @unique
-  paymentId  String?
-  status     String   @default("CREATED") // CREATED | PAID | FAILED
-  leadCreditPurchaseId String? @unique
+  id                   String              @id @default(cuid())
+  agentId              String
+  agent                Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  amount               Int // whole rupees
+  currency             String              @default("INR")
+  provider             String              @default("razorpay")
+  orderId              String              @unique
+  paymentId            String?
+  status               String              @default("CREATED") // CREATED | PAID | FAILED
+  leadCreditPurchaseId String?             @unique
   leadCreditPurchase   LeadCreditPurchase? @relation(fields: [leadCreditPurchaseId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@index([agentId])
 }
@@ -256,7 +256,7 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // verification | wallet | lead | purchase | support | system
+  type      String // verification | wallet | lead | purchase | support | system
   title     String
   body      String?
   href      String?
@@ -279,17 +279,17 @@ model AgentWallet {
 }
 
 model WalletTransaction {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   walletId     String
   wallet       AgentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
   agentId      String
-  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  type         String   // CREDIT | DEBIT
+  agent        Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  type         String // CREDIT | DEBIT
   amount       Int
   balanceAfter Int
   description  String
   leadId       String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime    @default(now())
 }
 
 model AgentCreditBalance {
@@ -323,36 +323,36 @@ model LeadCreditPackage {
 }
 
 model LeadCreditPurchase {
-  id              String   @id @default(cuid())
-  agentId         String
-  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  packageId       String
-  package         LeadCreditPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
-  packageName     String
-  credits         Int
-  priceInr        Int
-  currency        String   @default("INR")
+  id                   String            @id @default(cuid())
+  agentId              String
+  agent                Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  packageId            String
+  package              LeadCreditPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  packageName          String
+  credits              Int
+  priceInr             Int
+  currency             String            @default("INR")
   // "manual" for the QR-upload flow (default). Historical Razorpay-flavored
   // orders may still carry provider = "razorpay". The approval flow only
   // runs for provider = "manual".
-  provider        String   @default("manual")
-  orderId         String   @unique // e.g. MKB-20260808-000123 for manual orders
-  paymentId       String?
+  provider             String            @default("manual")
+  orderId              String            @unique // e.g. MKB-20260808-000123 for manual orders
+  paymentId            String?
   // Manual-payment flow additions. status values for manual orders:
   //   PENDING_REVIEW  — agent submitted screenshot, awaiting admin
   //   APPROVED        — admin approved, credits added
   //   REJECTED        — admin rejected, no credits added
   //   CANCELLED       — agent (or system) cancelled before review
   // Legacy Razorpay orders continue to use: CREATED | PAID | FAILED.
-  status              String   @default("CREATED")
+  status               String            @default("CREATED")
   paymentScreenshotUrl String? // Supabase Storage URL, admin-only view
   transactionReference String? // UPI/bank ref number, user-provided
   reviewedById         String? // User.id of admin who approved/rejected
   reviewedAt           DateTime?
   rejectionReason      String?
-  createdAt            DateTime @default(now())
+  createdAt            DateTime          @default(now())
   paidAt               DateTime? // set on APPROVED
-  updatedAt            DateTime @updatedAt
+  updatedAt            DateTime          @updatedAt
 
   walletTopup WalletTopup?
 
@@ -361,21 +361,21 @@ model LeadCreditPurchase {
 }
 
 model LeadCreditLedger {
-  id               String   @id @default(cuid())
+  id               String             @id @default(cuid())
   agentId          String
-  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent            Agent              @relation(fields: [agentId], references: [id], onDelete: Cascade)
   creditAmount     Int
   balanceAfter     Int
-  type             String   // CREDIT_PURCHASE | LEAD_PURCHASE | CREDIT_REFUND | ADMIN_ADJUSTMENT
+  type             String // CREDIT_PURCHASE | LEAD_PURCHASE | CREDIT_REFUND | ADMIN_ADJUSTMENT
   description      String
   referenceId      String?
   packageId        String?
   package          LeadCreditPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
   leadAssignmentId String?
-  leadAssignment   LeadAssignment? @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
+  leadAssignment   LeadAssignment?    @relation(fields: [leadAssignmentId], references: [id], onDelete: SetNull)
   leadId           String?
   adminId          String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime           @default(now())
 
   @@index([agentId, createdAt])
   @@index([type])
@@ -400,30 +400,30 @@ model Lead {
   departureCity   String?
   travelDate      DateTime?
   travelDateText  String?
-  travelers       Int?    // Total headcount if the enquiry didn't split by age
-  adults          Int?    // Adult headcount (optional; leads that predate this field only have `travelers`)
-  children        Int?    // Child headcount (same as above)
-  nights          Int?    // Trip length in nights, when the enquiry captured it explicitly
+  travelers       Int? // Total headcount if the enquiry didn't split by age
+  adults          Int? // Adult headcount (optional; leads that predate this field only have `travelers`)
+  children        Int? // Child headcount (same as above)
+  nights          Int? // Trip length in nights, when the enquiry captured it explicitly
   budget          Int?
   tripType        String?
   requirements    String? // JSON array of strings
   message         String?
 
   // classification
-  status          String  @default("NEW")        // see LEAD_STATUSES
-  quality         String  @default("UNREVIEWED")  // POOR|AVERAGE|GOOD|EXCELLENT|UNREVIEWED
+  status          String    @default("NEW") // see LEAD_STATUSES
+  quality         String    @default("UNREVIEWED") // POOR|AVERAGE|GOOD|EXCELLENT|UNREVIEWED
   qualityScore    Int?
-  qualityOverride Boolean @default(false)
+  qualityOverride Boolean   @default(false)
   price           Int?
-  assignmentCount Int     @default(0)
-  maxAgents       Int     @default(2)
-  isDuplicate     Boolean @default(false)
+  assignmentCount Int       @default(0)
+  maxAgents       Int       @default(2)
+  isDuplicate     Boolean   @default(false)
   expiresAt       DateTime?
 
   // source (unified across every ingestion channel)
-  source      String  @default("website") // website|google|meta|organic|direct|referral|whatsapp|manual|partner|api
-  sourceType  String  @default("website")  // website|google_lead_form|meta_lead_form|api|manual
-  externalId  String?  // provider lead id, for idempotency
+  source     String  @default("website") // website|google|meta|organic|direct|referral|whatsapp|manual|partner|api
+  sourceType String  @default("website") // website|google_lead_form|meta_lead_form|api|manual
+  externalId String? // provider lead id, for idempotency
 
   // categorisation for the marketplace
   tripCategory   String? // DOMESTIC | INTERNATIONAL | INBOUND
@@ -456,10 +456,10 @@ model Lead {
   duplicates    Lead[]  @relation("LeadDuplicates")
 
   // CMS relationships (nullable — leads work without content)
-  destinationId String?
-  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
-  packageId     String?
-  package       TourPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  destinationId        String?
+  destination          Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+  packageId            String?
+  package              TourPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
   // historical snapshots so lead records survive content edits/unpublish
   packageSnapshotName  String?
   packageSnapshotPrice Int?
@@ -481,35 +481,41 @@ model Lead {
 }
 
 model LeadAssignment {
-  id      String @id @default(cuid())
-  leadId  String
-  lead    Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  agentId String
-  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  price   Int
-  status  String @default("PURCHASED") // PURCHASED|CONTACTED|INTERESTED|QUOTE_SENT|NEGOTIATING|BOOKED|WON|LOST|NO_RESPONSE|SPAM
-  bookedValue Int?
-  bookedAt    DateTime?
+  id           String    @id @default(cuid())
+  leadId       String
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId      String
+  agent        Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  price        Int
+  status       String    @default("PURCHASED") // PURCHASED|CONTACTED|INTERESTED|QUOTE_SENT|NEGOTIATING|BOOKED|WON|LOST|NO_RESPONSE|SPAM
+  bookedValue  Int?
+  bookedAt     DateTime?
   bookingNotes String?
-  purchasedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  purchasedAt  DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  history LeadAssignmentStatusHistory[]
-  spamReports SpamReport[]
+  history      LeadAssignmentStatusHistory[]
+  spamReports  SpamReport[]
   creditLedger LeadCreditLedger[]
 
   @@unique([leadId, agentId])
+  // The (leadId, agentId) unique above indexes agentId as its SECOND column,
+  // so filters that lead with agentId (my-leads list, agent dashboard, admin
+  // agent detail, marketplace "already-yours" check, WON/status counts) get
+  // no index help from it. This composite covers every agent-scoped read AND
+  // the sort by purchasedAt DESC that most of them use.
+  @@index([agentId, purchasedAt])
 }
 
 model LeadAssignmentStatusHistory {
-  id          String   @id @default(cuid())
+  id           String         @id @default(cuid())
   assignmentId String
-  assignment  LeadAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  oldStatus   String?
-  newStatus   String
-  changedBy   String
-  changedAt   DateTime @default(now())
-  reason      String?
+  assignment   LeadAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  oldStatus    String?
+  newStatus    String
+  changedBy    String
+  changedAt    DateTime       @default(now())
+  reason       String?
 
   @@index([assignmentId])
   @@index([changedAt])
@@ -528,13 +534,13 @@ model LeadStatusHistory {
 }
 
 model LeadNote {
-  id         String   @id @default(cuid())
-  leadId     String
-  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  authorType String   @default("ADMIN")
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorType  String   @default("ADMIN")
   authorLabel String?
-  body       String
-  createdAt  DateTime @default(now())
+  body        String
+  createdAt   DateTime @default(now())
 }
 
 model LeadPayment {
@@ -576,17 +582,17 @@ model Destination {
   // Classifies leads created against this destination (same DOMESTIC |
   // INTERNATIONAL | INBOUND vocabulary as Lead.tripCategory below) so
   // category-based alert/auto-buy rules can match leads at ingestion time.
-  category         String?
+  category String?
 
   // vendor submission / moderation (admin-authored content defaults to APPROVED
   // so nothing existing is affected)
   submittedByAgentId String?
   submittedByAgent   Agent?  @relation(fields: [submittedByAgentId], references: [id], onDelete: SetNull)
-  moderationStatus    String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
-  rejectionReason     String?
+  moderationStatus   String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
+  rejectionReason    String?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   packages TourPackage[]
   leads    Lead[]
@@ -596,10 +602,10 @@ model Destination {
 }
 
 model TourPackage {
-  id            String  @id @default(cuid())
-  kind          String  @default("PACKAGE") // PACKAGE | TOUR
+  id            String       @id @default(cuid())
+  kind          String       @default("PACKAGE") // PACKAGE | TOUR
   title         String
-  slug          String  @unique
+  slug          String       @unique
   destinationId String?
   destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
 
@@ -633,8 +639,8 @@ model TourPackage {
 
   submittedByAgentId String?
   submittedByAgent   Agent?  @relation(fields: [submittedByAgentId], references: [id], onDelete: SetNull)
-  moderationStatus    String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
-  rejectionReason     String?
+  moderationStatus   String  @default("APPROVED") // DRAFT | PENDING_REVIEW | APPROVED | REJECTED
+  rejectionReason    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -651,49 +657,49 @@ model TourPackage {
 }
 
 model PackageImage {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   packageId String
   package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   url       String
   alt       String?
-  isHero    Boolean  @default(false)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  isHero    Boolean     @default(false)
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
 }
 
 model PackageItinerary {
-  id          String @id @default(cuid())
+  id          String      @id @default(cuid())
   packageId   String
   package     TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   day         Int
   title       String
   description String?
-  sortOrder   Int    @default(0)
+  sortOrder   Int         @default(0)
 }
 
 model PackageInclusion {
-  id        String @id @default(cuid())
+  id        String      @id @default(cuid())
   packageId String
   package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   text      String
-  sortOrder Int    @default(0)
+  sortOrder Int         @default(0)
 }
 
 model PackageExclusion {
-  id        String @id @default(cuid())
+  id        String      @id @default(cuid())
   packageId String
   package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   text      String
-  sortOrder Int    @default(0)
+  sortOrder Int         @default(0)
 }
 
 model PackageFAQ {
-  id        String @id @default(cuid())
+  id        String      @id @default(cuid())
   packageId String
   package   TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
   question  String
   answer    String
-  sortOrder Int    @default(0)
+  sortOrder Int         @default(0)
 }
 
 // ---------------------------------------------------------------------------
@@ -712,48 +718,48 @@ model Media {
 }
 
 model SiteSetting {
-  id                 String @id @default("default")
-  brandName          String @default("Moksh Booking")
-  tagline            String @default("Your trip. Your way.")
-  logoUrl            String?
-  heroImage          String? // explicit landing-page hero/background — NEVER inferred from a destination's image
-  faviconUrl         String?
-  phone              String?
-  whatsapp           String?
-  email              String?
-  address            String?
-  socials            String? // JSON
-  defaultLeadPrice   Int    @default(750)   // Legacy: single price used before per-type pricing existed. Kept as a fallback when the more specific fields below aren't set. Never negative.
-  leadMaxAgents      Int    @default(2)     // How many agents a shared lead may be sold to.
-  leadExpiryHours    Int    @default(72)    // Legacy hours-based expiry. Only used if leadValidityDays is unset. New leads use leadValidityDays.
-  leadValidityDays   Int    @default(365)   // New default lead validity — 365 days from creation.
+  id                          String   @id @default("default")
+  brandName                   String   @default("Moksh Booking")
+  tagline                     String   @default("Your trip. Your way.")
+  logoUrl                     String?
+  heroImage                   String? // explicit landing-page hero/background — NEVER inferred from a destination's image
+  faviconUrl                  String?
+  phone                       String?
+  whatsapp                    String?
+  email                       String?
+  address                     String?
+  socials                     String? // JSON
+  defaultLeadPrice            Int      @default(750) // Legacy: single price used before per-type pricing existed. Kept as a fallback when the more specific fields below aren't set. Never negative.
+  leadMaxAgents               Int      @default(2) // How many agents a shared lead may be sold to.
+  leadExpiryHours             Int      @default(72) // Legacy hours-based expiry. Only used if leadValidityDays is unset. New leads use leadValidityDays.
+  leadValidityDays            Int      @default(365) // New default lead validity — 365 days from creation.
   // Per-type purchase pricing in **Lead Credits** (not rupees). The value
   // an admin enters here is the number of credits deducted from the agent
   // when they purchase a lead of the matching kind. Enforced in
   // lib/validation.ts::settingsSchema and in the admin API route.
-  priceSharedDomestic     Int @default(1)
-  priceSharedInternational Int @default(1)
-  priceExclusiveDomestic     Int @default(2)
-  priceExclusiveInternational Int @default(2)
+  priceSharedDomestic         Int      @default(1)
+  priceSharedInternational    Int      @default(1)
+  priceExclusiveDomestic      Int      @default(2)
+  priceExclusiveInternational Int      @default(2)
   // Fixed cost (in Lead Credits) charged per click on a vendor ad. Section
   // 1 of the ads spec: flat rate, no bidding — admin decides the rate.
-  adCostPerClickCredits   Int @default(10)
-  footerText         String?
-  defaultSeoTitle    String?
-  defaultSeoDescription String?
-  gaId               String?
-  metaPixelId        String?
-  googleAdsId        String?
+  adCostPerClickCredits       Int      @default(10)
+  footerText                  String?
+  defaultSeoTitle             String?
+  defaultSeoDescription       String?
+  gaId                        String?
+  metaPixelId                 String?
+  googleAdsId                 String?
   // feature flags (gradual rollout; ads hidden by default)
-  vendorAdsEnabled          Boolean @default(false)
-  autoBuyEnabled            Boolean @default(true)
-  supportEnabled            Boolean @default(true)
-  packageMarketplaceEnabled Boolean @default(false)
-  updatedAt          DateTime @updatedAt
+  vendorAdsEnabled            Boolean  @default(false)
+  autoBuyEnabled              Boolean  @default(true)
+  supportEnabled              Boolean  @default(true)
+  packageMarketplaceEnabled   Boolean  @default(false)
+  updatedAt                   DateTime @updatedAt
 }
 
 model Campaign {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   source      String?
   medium      String?
@@ -768,9 +774,9 @@ model Campaign {
 
 model IntegrationLog {
   id          String   @id @default(cuid())
-  integration String   // google | meta | api | email | payment
-  event       String   // e.g. lead_ingest, webhook_verify
-  status      String   // SUCCESS | FAILED | DUPLICATE
+  integration String // google | meta | api | email | payment
+  event       String // e.g. lead_ingest, webhook_verify
+  status      String // SUCCESS | FAILED | DUPLICATE
   leadId      String?
   externalId  String?
   message     String?
@@ -782,13 +788,13 @@ model IntegrationLog {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  actorType  String   // ADMIN | AGENT | SYSTEM
+  actorType  String // ADMIN | AGENT | SYSTEM
   actorId    String?
   actorLabel String?
-  action     String   // lead.price, lead.status, lead.purchase, wallet.adjust, agent.status ...
-  entityType String   // lead | agent | wallet | integration | cms
+  action     String // lead.price, lead.status, lead.purchase, wallet.adjust, agent.status ...
+  entityType String // lead | agent | wallet | integration | cms
   entityId   String?
-  metadata   String?  // JSON
+  metadata   String? // JSON
   createdAt  DateTime @default(now())
 
   @@index([entityType])

@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Explore travel destinations and get personalized quotes from experts.",
 };
 
+export const revalidate = 300;
+
 export default async function DestinationsPage() {
   const destinations = await getPublishedDestinations({ featuredFirst: true });
 

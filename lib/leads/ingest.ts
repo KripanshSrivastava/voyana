@@ -208,32 +208,31 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
   if (!created) throw new Error("Lead creation failed");
 
   // --- Secondary tasks: best-effort, never block or fail the lead ---
+  // Previously ran serially (~6 sequential awaits including 2 SMTP round-trips).
+  // Now fan out in parallel; failures in any one are logged but never bubble
+  // up. Auto-buy still runs strictly last — it purchases against the lead and
+  // must see any alert-driven activity in a consistent post-fan-out state.
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const sideEffects: Promise<unknown>[] = [
+    logAudit({ actorType: input.actorType ?? "SYSTEM", actorLabel: input.actorLabel, action: "lead.create", entityType: "lead", entityId: created.id, metadata: { source: input.source, sourceType: input.sourceType, quality } }),
+    runLeadAlerts(created.id),
+  ];
   if (integration) {
-    await logIntegration({ integration, event: "lead_ingest", status: "SUCCESS", leadId: created.id, externalId: input.externalId, message: dupe ? "Created (possible duplicate flagged)" : "Created" });
+    sideEffects.push(logIntegration({ integration, event: "lead_ingest", status: "SUCCESS", leadId: created.id, externalId: input.externalId, message: dupe ? "Created (possible duplicate flagged)" : "Created" }));
   }
-  await logAudit({ actorType: input.actorType ?? "SYSTEM", actorLabel: input.actorLabel, action: "lead.create", entityType: "lead", entityId: created.id, metadata: { source: input.source, sourceType: input.sourceType, quality } });
-
-  // Notifications (do not await-fail the pipeline)
-  try {
-    if (email) {
-      const t = customerLeadReceived({ name: input.customerName, code: created.code, destination: input.destinationText });
-      await sendEmail({ to: email, ...t, category: "leads" });
-    }
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (adminEmail) {
-      const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });
-      await sendEmail({ to: adminEmail, ...t, category: "leads" });
-    }
-  } catch (e) {
-    console.error("[ingest] notification error (non-fatal)", e);
+  if (email) {
+    const t = customerLeadReceived({ name: input.customerName, code: created.code, destination: input.destinationText });
+    sideEffects.push(sendEmail({ to: email, ...t, category: "leads" }));
   }
-
-  // Fan out lead alerts to matching agents (best-effort, non-blocking).
-  await runLeadAlerts(created.id);
+  if (adminEmail) {
+    const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });
+    sideEffects.push(sendEmail({ to: adminEmail, ...t, category: "leads" }));
+  }
+  await Promise.allSettled(sideEffects);
 
   // A freshly-priced lead is immediately purchasable — give auto-buy-enabled
-  // agents first shot at it (best-effort, non-blocking; mirrors the same call
-  // the admin panel makes when it manually prices/publishes a lead).
+  // agents first shot at it (best-effort, non-blocking). Kept sequential after
+  // the fan-out so auto-buy sees a settled state (consistent assignmentCount).
   await runAutoBuyForLead(created.id);
 
   return { lead: created, duplicate: Boolean(dupe), alreadyExisted: false };

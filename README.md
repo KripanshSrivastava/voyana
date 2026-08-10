@@ -2,7 +2,7 @@
 
 > **Your trip. Your way.**
 
-A complete, locally-runnable MVP for a travel **lead-generation + lead-distribution** platform with an admin-managed **content/catalog CMS**.
+A complete, locally-runnable travel **lead-generation + lead-distribution** platform with an admin-managed **content/catalog CMS**.
 
 **Business model:** Traffic → Lead → Admin qualifies & prices → Sold to a **maximum of 2 agents** → Agent contacts customer → Conversion → Revenue.
 The public travel catalog (destinations / tours / packages) is a **content & conversion layer** — it is fully DB-driven and controlled from the admin CMS.

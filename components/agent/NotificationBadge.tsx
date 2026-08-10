@@ -24,7 +24,9 @@ export function NotificationBadge({ initial }: { initial: number }) {
 
     async function poll() {
       try {
-        const res = await fetch("/api/account/notifications", { cache: "no-store" });
+        // Count-only endpoint — was previously fetching the full notification
+        // list (up to 100 rows) just to read `unread`. Now ships one integer.
+        const res = await fetch("/api/account/notifications/unread", { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const json = await res.json();
         if (!cancelled && json.ok) setUnread(json.data.unread);

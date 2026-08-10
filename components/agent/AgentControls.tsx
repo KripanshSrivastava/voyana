@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShoppingCart, Lock } from "lucide-react";
 import { Button, Select } from "@/components/ui";
+import { toast } from "@/components/ui/Toast";
 import { ASSIGNMENT_STATUSES } from "@/lib/constants";
 import { titleCase } from "@/lib/utils";
 
@@ -172,32 +173,51 @@ export function BuyLeadControls({
   );
 }
 
+/**
+ * Optimistic lead-status change:
+ *  - Select value flips instantly to the picked status.
+ *  - POST fires in the background inside a transition.
+ *  - On failure, we roll back to the previous status and toast the error.
+ *  - `pending` disables the control so the user can't queue racing writes.
+ *
+ * The server remains authoritative — router.refresh() re-fetches the row
+ * after every attempt so if the server normalised the status differently
+ * (or another actor beat us to it), the UI eventually matches truth.
+ */
 export function LeadStatusControl({ leadId, current }: { leadId: string; current: string }) {
   const router = useRouter();
   const [status, setStatus] = useState(current);
-  const [busy, setBusy] = useState(false);
+  const [pending, startTransition] = useTransition();
 
-  async function update(next: string) {
-    setStatus(next);
-    setBusy(true);
-    try {
-      await fetch(`/api/agent/leads/${leadId}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      });
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
+  function update(next: string) {
+    if (next === status) return;
+    const previous = status;
+    setStatus(next); // optimistic
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/agent/leads/${leadId}/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: next }),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          throw new Error(json.error || "Could not update status.");
+        }
+        router.refresh();
+      } catch (e) {
+        setStatus(previous); // rollback
+        toast.error(e instanceof Error ? e.message : "Could not update status.");
+      }
+    });
   }
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={status} onChange={(e) => update(e.target.value)} disabled={busy}>
+      <Select value={status} onChange={(e) => update(e.target.value)} disabled={pending}>
         {ASSIGNMENT_STATUSES.map((s) => (<option key={s} value={s}>{titleCase(s)}</option>))}
       </Select>
-      {busy && <Loader2 className="h-4 w-4 animate-spin text-navy-400" />}
+      {pending && <Loader2 className="h-4 w-4 animate-spin text-navy-400" />}
     </div>
   );
 }

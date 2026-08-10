@@ -3,6 +3,10 @@ import { getFeaturedDestinations, getFeaturedPackages, getPublicVendors, getPubl
 import { getPublicSettings } from "@/lib/settings";
 import { getFlags } from "@/lib/flags";
 
+// ISR: render at most once every 5 minutes. Admin mutations already call
+// revalidatePath("/") via lib/cache/revalidate.ts, so edits show up sooner.
+export const revalidate = 300;
+
 export default async function HomePage() {
   const [destinations, packages, tours, settings, vendors, flags] = await Promise.all([
     getFeaturedDestinations(8),

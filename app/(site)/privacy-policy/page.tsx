@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Privacy Policy" };
+export const revalidate = 3600;
 
 export default async function PrivacyPolicyPage() {
   const s = await getPublicSettings();

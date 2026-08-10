@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Browse curated travel packages and get personalized quotes from experts.",
 };
 
+export const revalidate = 300;
+
 export default async function PackagesPage() {
   const packages = await getPublishedPackages({ kind: "PACKAGE" });
   return (

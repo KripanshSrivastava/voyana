@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Users, Wallet, TrendingUp, Megaphone, MapPin,
   Package, Compass, Image as ImageIcon, Settings, LogOut, Menu, X, Plane, Inbox,
-  Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon, ClipboardCheck, Headset,
+  Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon, ClipboardCheck, Headset, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
@@ -49,7 +49,15 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: React
   },
 ];
 
-export function AdminShell({ name, brandName, logoUrl, children }: { name: string; brandName: string; logoUrl?: string | null; children: React.ReactNode }) {
+// Super-admin-only nav item. Rendered as its own group so it appears under a
+// clear "Access" heading and is trivially removable when the viewer isn't a
+// SUPER_ADMIN — no filter logic scattered through GROUPS.
+const SUPER_ADMIN_GROUP = {
+  label: "Access",
+  items: [{ href: "/admin/admins", label: "Admins", icon: ShieldCheck }],
+};
+
+export function AdminShell({ name, adminRole, brandName, logoUrl, children }: { name: string; adminRole: string | null; brandName: string; logoUrl?: string | null; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -61,9 +69,14 @@ export function AdminShell({ name, brandName, logoUrl, children }: { name: strin
     router.refresh();
   }
 
+  // An ADMIN with no adminRole is treated as SUPER_ADMIN (matches lib/rbac.ts).
+  // Server-side gates still enforce this — hiding the nav item is UX polish, not security.
+  const isSuperAdmin = !adminRole || adminRole === "SUPER_ADMIN";
+  const groups = isSuperAdmin ? [...GROUPS, SUPER_ADMIN_GROUP] : GROUPS;
+
   const nav = (
     <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
-      {GROUPS.map((g) => (
+      {groups.map((g) => (
         <div key={g.label}>
           <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-navy-400">{g.label}</p>
           <div className="space-y-1">
