@@ -27,7 +27,16 @@ export default async function HomePage() {
   return (
     <LandingLeadExperience
       brandName={settings.brandName}
+      logoUrl={settings.logoUrl ?? null}
       heroImage={heroImage}
+      contact={{
+        phone: settings.phone ?? null,
+        whatsapp: settings.whatsapp ?? null,
+        email: settings.email ?? null,
+        address: settings.address ?? null,
+        socials: settings.socials,
+        footerText: settings.footerText ?? null,
+      }}
       vendors={vendors.map((v) => ({
         id: v.id,
         companyName: v.companyName,

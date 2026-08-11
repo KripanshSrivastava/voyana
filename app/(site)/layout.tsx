@@ -9,7 +9,12 @@ import { AnalyticsTags } from "@/components/site/AnalyticsTags";
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const settings = await getPublicSettings();
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    // Cream ground so the shared header/footer sit on the same palette as the
+    // landing — no more navy body under a cream footer.
+    <div
+      className="flex min-h-screen flex-col"
+      style={{ background: "var(--mb-bg)", color: "var(--mb-ink)" }}
+    >
       <AnalyticsTags gaId={settings.gaId} googleAdsId={settings.googleAdsId} />
       <AttributionTracker />
       <SiteHeader brandName={settings.brandName} logoUrl={settings.logoUrl} />

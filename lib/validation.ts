@@ -239,6 +239,8 @@ export const settingsSchema = z.object({
     instagram: z.string().optional().or(z.literal("")),
     twitter: z.string().optional().or(z.literal("")),
     youtube: z.string().optional().or(z.literal("")),
+    pinterest: z.string().optional().or(z.literal("")),
+    linkedin: z.string().optional().or(z.literal("")),
   }).optional(),
   defaultLeadPrice: z.coerce.number().int().min(0, "Price cannot be negative."),
   leadMaxAgents: z.coerce.number().int().min(1).max(10),

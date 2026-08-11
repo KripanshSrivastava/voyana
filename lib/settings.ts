@@ -3,7 +3,14 @@ import { prisma, withReadRetry } from "./db";
 import { parseJson } from "./utils";
 import { cached } from "./cache/publicCache";
 
-export type Socials = { facebook?: string; instagram?: string; twitter?: string; youtube?: string };
+export type Socials = {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  pinterest?: string;
+  linkedin?: string;
+};
 
 /**
  * Site settings are a singleton row. Always read live from the database —

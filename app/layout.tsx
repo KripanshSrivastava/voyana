@@ -10,10 +10,12 @@ const sans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+// Italic variants intentionally omitted — no component uses italic Fraunces,
+// and italic-latin subset URLs on fonts.gstatic.com/v38 have been returning
+// 404s from Vercel's build environment, breaking Turbopack production builds.
 const display = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
   variable: "--font-display-var",
   display: "swap",
 });

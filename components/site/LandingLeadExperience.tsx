@@ -2,9 +2,29 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plane, Phone, Mail, MapPin, ShieldCheck } from "lucide-react";
+// lucide-react@1.x has no brand-logo icons — use react-icons/fa for the four
+// socials the SiteSetting.socials JSON captures.
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaPinterestP, FaLinkedinIn } from "react-icons/fa";
 import { CmsImage } from "@/components/site/CmsImage";
 import { getAttribution, trackLeadConversion } from "@/lib/attribution";
 import { formatINR } from "@/lib/utils";
+
+type LandingContact = {
+  phone: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  address: string | null;
+  footerText: string | null;
+  socials: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    pinterest?: string;
+    linkedin?: string;
+  };
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Types                                                                    */
@@ -56,7 +76,37 @@ type VendorAdItem = {
   vendorName: string;
 };
 
-type ModalState = { open: boolean; destination?: string; nonce: number };
+type ModalPrefill = {
+  destination?: string;
+  travelDate?: string;
+  nights?: string;
+  travelers?: string;
+};
+
+type ModalState = { open: boolean; prefill?: ModalPrefill; nonce: number };
+
+/** Options rendered in the hero's Nights select. Kept short and human-shaped —
+ *  agents want to plan around whole-week trips first, everything else can be
+ *  picked in the modal step. Values are integer nights so they round-trip
+ *  through the LeadPopupModal.nights state unchanged. */
+const HERO_NIGHTS_OPTIONS = [
+  { value: "3", label: "3 nights" },
+  { value: "4", label: "4 nights" },
+  { value: "5", label: "5 nights" },
+  { value: "6", label: "6 nights" },
+  { value: "7", label: "7 nights" },
+  { value: "10", label: "10 nights" },
+  { value: "14", label: "14 nights" },
+];
+
+const HERO_TRAVELLER_OPTIONS = [
+  { value: "1", label: "1 Adult" },
+  { value: "2", label: "2 Adults" },
+  { value: "3", label: "3 Adults" },
+  { value: "4", label: "4 Adults" },
+  { value: "5", label: "5 Adults" },
+  { value: "6", label: "6+ Adults" },
+];
 
 const TRIP_TABS = ["Holiday Packages", "Custom Trip", "Group Tours", "Honeymoon"] as const;
 
@@ -99,26 +149,47 @@ const LABEL_STYLE: React.CSSProperties = {
 
 export function LandingLeadExperience({
   brandName = "MokshBooking",
+  logoUrl,
   destinations,
   packages,
   tours,
   heroImage,
-  vendors = [],
+  // `vendors` is still accepted on the props type but intentionally not
+  // destructured — the "Our verified travel partners" section was removed
+  // until at least one agent is APPROVED + VERIFIED. Restore the destructure
+  // when the section is re-added; the parent already passes it through.
   vendorAds = [],
+  contact,
 }: {
   brandName?: string;
+  /** Uploaded brand logo from SiteSetting.logoUrl. When present, renders in
+   *  place of the fallback plane mark in nav and footer. */
+  logoUrl?: string | null;
   destinations: Destination[];
   packages: PackageItem[];
   tours: PackageItem[];
   heroImage?: string | null;
   vendors?: Vendor[];
   vendorAds?: VendorAdItem[];
+  /** Contact + social + trust metadata rendered in the footer. Sourced from
+   *  SiteSetting via getPublicSettings() so admin edits reflow immediately. */
+  contact?: LandingContact;
 }) {
   const [modal, setModal] = useState<ModalState>({ open: false, nonce: 0 });
   const [scrolled, setScrolled] = useState(false);
   const [parallax, setParallax] = useState(0);
   const [activeTab, setActiveTab] = useState<(typeof TRIP_TABS)[number]>("Holiday Packages");
   const [activePromo, setActivePromo] = useState(0);
+
+  // Hero search bar: local state, no server calls until the user clicks Get
+  // Quote and the modal opens with these values pre-filled. Keeps the hero
+  // fast to interact with and avoids sending partial enquiries.
+  const [heroSearch, setHeroSearch] = useState({
+    destination: "",
+    travelDate: "",
+    nights: "5",
+    travelers: "2",
+  });
 
   const destinationNames = useMemo(() => {
     const names = new Set<string>();
@@ -158,9 +229,23 @@ export function LandingLeadExperience({
     ];
   }, [vendorAds, bannerImage]);
 
-  const openLeadModal = useCallback((destination?: string) => {
-    setModal((current) => ({ open: true, destination, nonce: current.nonce + 1 }));
+  const openLeadModal = useCallback((prefill?: ModalPrefill | string) => {
+    // Back-compat: DestinationCard/PackageCard still call this with a bare
+    // string. Normalise both shapes into the ModalPrefill object.
+    const normalised: ModalPrefill | undefined = typeof prefill === "string"
+      ? { destination: prefill }
+      : prefill;
+    setModal((current) => ({ open: true, prefill: normalised, nonce: current.nonce + 1 }));
   }, []);
+
+  const openLeadModalFromHero = useCallback(() => {
+    openLeadModal({
+      destination: heroSearch.destination.trim() || undefined,
+      travelDate: heroSearch.travelDate || undefined,
+      nights: heroSearch.nights || undefined,
+      travelers: heroSearch.travelers || undefined,
+    });
+  }, [heroSearch, openLeadModal]);
 
   useEffect(() => {
     const handler = () => openLeadModal();
@@ -197,16 +282,38 @@ export function LandingLeadExperience({
           override to use !important. */}
       <nav className="mb-nav" data-scrolled={scrolled ? "true" : "false"}>
         <div className="mb-nav-brand">
-          <Link href="/" style={{ color: navLinkColor }}>
-            <h1 style={{ fontSize: 22, letterSpacing: "0.2px", color: navLinkColor }}>{brandName}</h1>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: navLinkColor }}>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={brandName} style={{ height: 32, width: "auto", display: "block" }} />
+            ) : (
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  width: 32,
+                  height: 32,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                  background: scrolled ? "var(--mb-accent)" : "rgba(255,255,255,0.15)",
+                  color: "#fff",
+                  transition: "background 200ms",
+                }}
+              >
+                <Plane style={{ width: 16, height: 16, transform: "rotate(-45deg)" }} />
+              </span>
+            )}
+            <h1 style={{ fontSize: 22, letterSpacing: "0.2px", color: navLinkColor, margin: 0 }}>{brandName}</h1>
           </Link>
         </div>
         <div className="mb-nav-links">
+          <Link href="/" style={{ color: navLinkColor }}>Home</Link>
           <a href="#destinations" style={{ color: navLinkColor }}>Destinations</a>
-          <Link href="/packages" style={{ color: navLinkColor }}>Explore</Link>
+          <Link href="/tours" style={{ color: navLinkColor }}>Tours</Link>
+          <Link href="/packages" style={{ color: navLinkColor }}>Packages</Link>
           <a href="#how-it-works" style={{ color: navLinkColor }}>How It Works</a>
-          <Link href="/login?intent=agent" style={{ color: navLinkColor }}>Travel Agents</Link>
-          <Link href="/contact" style={{ color: navLinkColor }}>Support</Link>
+          <Link href="/about" style={{ color: navLinkColor }}>About</Link>
         </div>
         <div className="mb-nav-actions">
           <Link href="/login" style={{ color: navLinkColor }}>Login</Link>
@@ -409,17 +516,66 @@ export function LandingLeadExperience({
               </button>
             ))}
           </div>
-          <div className="mb-search-grid">
-            <SearchFacet label="DESTINATION" value="Where to?" />
-            <SearchFacet label="TRAVEL DATE" value="Anytime" />
-            <SearchFacet label="NIGHTS" value="5" />
-            <SearchFacet label="TRAVELERS" value="2 Adults" last />
+          {/* Editable hero search. Each cell holds a real input; clicking
+              Get Quote opens the enquiry modal pre-filled with these values
+              so the user only needs to add their name + phone + email. */}
+          <form
+            className="mb-search-grid"
+            onSubmit={(e) => { e.preventDefault(); openLeadModalFromHero(); }}
+          >
+            <SearchFacetInput label="DESTINATION">
+              <input
+                type="text"
+                list="mb-hero-destinations"
+                placeholder="Where to?"
+                value={heroSearch.destination}
+                onChange={(e) => setHeroSearch((s) => ({ ...s, destination: e.target.value }))}
+                className="mb-search-input"
+                autoComplete="off"
+              />
+              <datalist id="mb-hero-destinations">
+                {destinationNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </SearchFacetInput>
+            <SearchFacetInput label="TRAVEL DATE">
+              <input
+                type="date"
+                value={heroSearch.travelDate}
+                onChange={(e) => setHeroSearch((s) => ({ ...s, travelDate: e.target.value }))}
+                className="mb-search-input"
+                min={new Date().toISOString().slice(0, 10)}
+              />
+            </SearchFacetInput>
+            <SearchFacetInput label="NIGHTS">
+              <select
+                value={heroSearch.nights}
+                onChange={(e) => setHeroSearch((s) => ({ ...s, nights: e.target.value }))}
+                className="mb-search-input"
+              >
+                {HERO_NIGHTS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </SearchFacetInput>
+            <SearchFacetInput label="TRAVELERS" last>
+              <select
+                value={heroSearch.travelers}
+                onChange={(e) => setHeroSearch((s) => ({ ...s, travelers: e.target.value }))}
+                className="mb-search-input"
+              >
+                {HERO_TRAVELLER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </SearchFacetInput>
             <div className="mb-search-cta">
-              <button type="button" onClick={() => openLeadModal()} className="mb-btn-accent mb-quote-btn">
+              <button type="submit" className="mb-btn-accent mb-quote-btn">
                 Get Quote
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
 
@@ -623,73 +779,16 @@ export function LandingLeadExperience({
         </div>
       </section>
 
-      {/* ---------------------------------------------------------------- */}
-      {/*  Verified partners (only when we actually have vendors)           */}
-      {/* ---------------------------------------------------------------- */}
-      {vendors.length > 0 && (
-        <section className="mb-section-vendors">
-          <h2 className="mb-h2" style={{ marginBottom: 40 }}>Our verified travel partners</h2>
-          <div className="mb-grid-3">
-            {vendors.slice(0, 6).map((v) => (
-              <div
-                key={v.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  background: "#fff",
-                  border: "1px solid var(--mb-line)",
-                  borderRadius: 8,
-                  padding: 18,
-                }}
-              >
-                <span
-                  style={{
-                    width: 48,
-                    height: 48,
-                    flex: "none",
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    background: "var(--mb-surface)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 17,
-                    fontWeight: 600,
-                    color: "var(--mb-muted)",
-                  }}
-                >
-                  {v.profileImage ? (
-                    <CmsImage src={v.profileImage} alt={v.companyName} className="h-full w-full" />
-                  ) : (
-                    v.companyName.charAt(0).toUpperCase()
-                  )}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {v.companyName}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "var(--mb-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {[v.city, v.state].filter(Boolean).join(", ") || "Verified partner"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Verified partners section intentionally removed until at least one
+          vendor is APPROVED + VERIFIED. When that happens, restore the
+          block using the `vendors` prop already threaded through. */}
 
-      <footer className="mb-footer">
-        <h3 style={{ fontSize: 17 }}>{brandName}</h3>
-        <div style={{ fontSize: 13, color: "var(--mb-muted-3)" }}>
-          © {new Date().getFullYear()} {brandName} · mokshbooking.app
-        </div>
-      </footer>
+      <LandingFooter brandName={brandName} logoUrl={logoUrl} contact={contact} />
 
       <LeadPopupModal
         key={modal.nonce}
         open={modal.open}
-        selectedDestination={modal.destination}
+        prefill={modal.prefill}
         destinations={destinationNames}
         onClose={() => setModal((current) => ({ ...current, open: false }))}
       />
@@ -703,13 +802,15 @@ export function LandingLeadExperience({
 /*  Sub-components                                                           */
 /* ------------------------------------------------------------------------ */
 
-function SearchFacet({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  // Padding/borders live in CSS (not inline) so the mobile breakpoint can
-  // restack these cells without needing !important to beat inline styles.
+/** One cell of the hero search bar. The label is fixed, the value slot
+ *  accepts any control (text input, date input, native select). Native
+ *  controls stay borderless and inherit typography from CSS so they read
+ *  like text in the design comp instead of chrome-heavy form fields. */
+function SearchFacetInput({ label, last, children }: { label: string; last?: boolean; children: React.ReactNode }) {
   return (
     <div className={last ? "mb-facet mb-facet-last" : "mb-facet"}>
       <div style={{ fontSize: 10.5, letterSpacing: "0.3px", color: "var(--mb-muted-2)", marginBottom: 5 }}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 500 }}>{value}</div>
+      {children}
     </div>
   );
 }
@@ -879,17 +980,174 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 /* ------------------------------------------------------------------------ */
+/*  Landing footer — brand + explore/travel-agents/support columns +          */
+/*  address/phone/email + social icons + secure-payment trust badge +         */
+/*  privacy/terms row. Everything text-based comes from SiteSetting via the   */
+/*  contact prop, so admin edits reflow the next revalidate cycle.            */
+/* ------------------------------------------------------------------------ */
+
+function LandingFooter({ brandName, logoUrl, contact }: { brandName: string; logoUrl?: string | null; contact?: LandingContact }) {
+  const year = new Date().getFullYear();
+  const socials = contact?.socials ?? {};
+  const socialLinks = [
+    { key: "facebook", href: socials.facebook, Icon: FaFacebookF, label: "Facebook" },
+    { key: "instagram", href: socials.instagram, Icon: FaInstagram, label: "Instagram" },
+    { key: "twitter", href: socials.twitter, Icon: FaTwitter, label: "Twitter" },
+    { key: "youtube", href: socials.youtube, Icon: FaYoutube, label: "YouTube" },
+    { key: "pinterest", href: socials.pinterest, Icon: FaPinterestP, label: "Pinterest" },
+    { key: "linkedin", href: socials.linkedin, Icon: FaLinkedinIn, label: "LinkedIn" },
+  ].filter((s) => s.href);
+
+  return (
+    <footer className="mb-landing-footer">
+      <div className="mb-landing-footer-inner">
+        {/* Brand block --------------------------------------------------- */}
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={brandName} style={{ height: 40, width: "auto", display: "block" }} />
+            ) : (
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  width: 36,
+                  height: 36,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                  background: "var(--mb-accent)",
+                  color: "#fff",
+                }}
+              >
+                <Plane style={{ width: 18, height: 18, transform: "rotate(-45deg)" }} />
+              </span>
+            )}
+            <h3 style={{ fontSize: 20, margin: 0, color: "var(--mb-ink)" }}>{brandName}</h3>
+          </div>
+          <p style={{ fontSize: 14, color: "var(--mb-muted)", lineHeight: 1.6, maxWidth: 300, margin: "0 0 18px" }}>
+            {contact?.footerText || "Your trip. Your way. Trusted travel professionals crafting journeys around you."}
+          </p>
+          {/* Trust badge --------------------------------------------------- */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "var(--mb-surface)",
+              border: "1px solid var(--mb-line)",
+              borderRadius: 999,
+              padding: "8px 14px",
+              fontSize: 12.5,
+              color: "var(--mb-ink)",
+            }}
+          >
+            <ShieldCheck style={{ width: 14, height: 14, color: "var(--mb-green)" }} />
+            <span style={{ fontWeight: 500 }}>Secure &amp; encrypted enquiries</span>
+          </div>
+        </div>
+
+        {/* Explore column -------------------------------------------------- */}
+        <div>
+          <h4 className="mb-landing-footer-heading">Explore</h4>
+          <ul className="mb-landing-footer-list">
+            <li><Link href="/destinations">Destinations</Link></li>
+            <li><Link href="/tours">Tours</Link></li>
+            <li><Link href="/packages">Packages</Link></li>
+            <li><Link href="/how-it-works">How It Works</Link></li>
+            <li><Link href="/about">About</Link></li>
+          </ul>
+        </div>
+
+        {/* Travel Agents column ------------------------------------------- */}
+        <div>
+          <h4 className="mb-landing-footer-heading">Travel Agents</h4>
+          <ul className="mb-landing-footer-list">
+            <li><Link href="/login?intent=agent">Vendor Login</Link></li>
+            <li><Link href="/agent/signup">Become a Partner</Link></li>
+            <li><Link href="/contact">Vendor Support</Link></li>
+          </ul>
+        </div>
+
+        {/* Support / Contact column --------------------------------------- */}
+        <div>
+          <h4 className="mb-landing-footer-heading">Support</h4>
+          <ul className="mb-landing-footer-list mb-landing-footer-contact">
+            {contact?.phone && (
+              <li>
+                <a href={`tel:${contact.phone}`}>
+                  <Phone style={{ width: 14, height: 14, color: "var(--mb-accent)" }} />
+                  <span>{contact.phone}</span>
+                </a>
+              </li>
+            )}
+            {contact?.email && (
+              <li>
+                <a href={`mailto:${contact.email}`}>
+                  <Mail style={{ width: 14, height: 14, color: "var(--mb-accent)" }} />
+                  <span>{contact.email}</span>
+                </a>
+              </li>
+            )}
+            {contact?.address && (
+              <li className="mb-landing-footer-address">
+                <MapPin style={{ width: 14, height: 14, color: "var(--mb-accent)", marginTop: 3 }} />
+                <span>{contact.address}</span>
+              </li>
+            )}
+            <li>
+              <Link href="/contact">
+                <span style={{ fontSize: 13.5 }}>Contact us →</span>
+              </Link>
+            </li>
+          </ul>
+
+          {socialLinks.length > 0 && (
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              {socialLinks.map(({ key, href, Icon, label }) => (
+                <a
+                  key={key}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="mb-landing-footer-social"
+                >
+                  <Icon style={{ width: 15, height: 15 }} />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Legal row ------------------------------------------------------ */}
+      <div className="mb-landing-footer-legal">
+        <span>© {year} {brandName}. All rights reserved.</span>
+        <div style={{ display: "flex", gap: 20 }}>
+          <Link href="/privacy-policy">Privacy Policy</Link>
+          <Link href="/terms">Terms &amp; Conditions</Link>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ------------------------------------------------------------------------ */
 /*  Enquiry modal — exact design chrome, existing lead payload               */
 /* ------------------------------------------------------------------------ */
 
 function LeadPopupModal({
   open,
-  selectedDestination,
+  prefill,
   destinations,
   onClose,
 }: {
   open: boolean;
-  selectedDestination?: string;
+  /** Values pre-filled from the hero search bar (or a card click). Only the
+   *  fields the caller knew about are seeded — the rest keep their defaults. */
+  prefill?: ModalPrefill;
   destinations: string[];
   onClose: () => void;
 }) {
@@ -898,11 +1156,11 @@ function LeadPopupModal({
   const [submitted, setSubmitted] = useState<{ name: string; destination: string } | null>(null);
   const [form, setForm] = useState({
     customerName: "",
-    destinationText: selectedDestination ?? "",
+    destinationText: prefill?.destination ?? "",
     departureCity: "",
-    travelDate: "",
-    nights: "5",
-    adults: "2",
+    travelDate: prefill?.travelDate ?? "",
+    nights: prefill?.nights ?? "5",
+    adults: prefill?.travelers ?? "2",
     children: "0",
     phone: "",
     email: "",
@@ -923,7 +1181,7 @@ function LeadPopupModal({
 
   if (!open) return null;
 
-  const titleDestination = form.destinationText || selectedDestination;
+  const titleDestination = form.destinationText || prefill?.destination;
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -1206,6 +1464,34 @@ function LandingStyles() {
         padding: 14px 26px; border-radius: 6px; white-space: nowrap; border: none;
         cursor: pointer; width: 100%; font-family: inherit;
       }
+      /* Native inputs styled to blend into the search cells — no default
+         form chrome, just the same 15px medium text the old static value
+         div used. Focus ring is minimal (accent underline) so the hero
+         stays clean. */
+      .mb-search-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--mb-ink);
+        font-family: inherit;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+      }
+      .mb-search-input:focus { outline: none; color: var(--mb-accent); }
+      .mb-search-input::placeholder { color: var(--mb-muted-2); font-weight: 400; }
+      /* Date inputs on Chrome show a picker indicator we want to keep clickable
+         but visually low-key. */
+      .mb-search-input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer; opacity: 0.55;
+      }
+      /* Selects still get a caret via the native UI — Firefox and Safari need
+         it too. */
+      select.mb-search-input { padding-right: 16px; }
 
       .mb-h2 { font-size: 38px; color: var(--mb-ink); }
 
@@ -1223,10 +1509,46 @@ function LandingStyles() {
       .mb-section-how { padding: 110px 48px; background: var(--mb-surface); }
       .mb-section-why { padding: 110px 48px; max-width: 1320px; margin: 0 auto; }
       .mb-section-vendors { padding: 0 48px 110px; max-width: 1320px; margin: 0 auto; }
-      .mb-footer {
-        padding: 48px; border-top: 1px solid var(--mb-line); display: flex;
-        justify-content: space-between; align-items: center; max-width: 1320px; margin: 0 auto; gap: 16px;
+
+      /* --- Landing footer -------------------------------------------- */
+      .mb-landing-footer {
+        border-top: 1px solid var(--mb-line);
+        background: var(--mb-surface);
+        margin-top: 48px;
       }
+      .mb-landing-footer-inner {
+        max-width: 1320px; margin: 0 auto;
+        padding: 64px 48px 40px;
+        display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.2fr; gap: 48px;
+      }
+      .mb-landing-footer-heading {
+        font-size: 13px; font-weight: 600; color: var(--mb-ink);
+        letter-spacing: 0.5px; text-transform: uppercase; margin: 6px 0 16px;
+      }
+      .mb-landing-footer-list { list-style: none; padding: 0; margin: 0; }
+      .mb-landing-footer-list li { margin-bottom: 10px; font-size: 14px; }
+      .mb-landing-footer-list a {
+        color: var(--mb-muted); text-decoration: none; transition: color 150ms;
+        display: inline-flex; align-items: center; gap: 8px;
+      }
+      .mb-landing-footer-list a:hover { color: var(--mb-ink); }
+      .mb-landing-footer-contact li { margin-bottom: 12px; }
+      .mb-landing-footer-address { display: flex; gap: 8px; color: var(--mb-muted); font-size: 13.5px; line-height: 1.5; }
+      .mb-landing-footer-social {
+        display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center;
+        border-radius: 8px; background: #fff; border: 1px solid var(--mb-line);
+        color: var(--mb-muted); transition: all 150ms;
+      }
+      .mb-landing-footer-social:hover { color: var(--mb-accent); border-color: var(--mb-accent); }
+      .mb-landing-footer-legal {
+        border-top: 1px solid var(--mb-line);
+        max-width: 1320px; margin: 0 auto;
+        padding: 20px 48px;
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        font-size: 12.5px; color: var(--mb-muted);
+      }
+      .mb-landing-footer-legal a { color: var(--mb-muted); text-decoration: none; }
+      .mb-landing-footer-legal a:hover { color: var(--mb-ink); }
       .mb-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 28px; }
       .mb-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 28px; }
       .mb-grid-4-wide { display: grid; grid-template-columns: repeat(4,1fr); gap: 40px; }
@@ -1260,13 +1582,17 @@ function LandingStyles() {
         .mb-section-how { padding: 72px 20px; }
         .mb-section-why { padding: 72px 20px; }
         .mb-section-vendors { padding: 0 20px 72px; }
-        .mb-footer { padding: 32px 20px; flex-direction: column; text-align: center; }
+        .mb-landing-footer-inner {
+          padding: 48px 20px 32px; grid-template-columns: 1fr 1fr; gap: 32px;
+        }
+        .mb-landing-footer-legal { padding: 20px; flex-direction: column; text-align: center; gap: 10px; }
         .mb-h2 { font-size: 28px; }
       }
 
       @media (max-width: 620px) {
         .mb-grid-4, .mb-grid-3, .mb-grid-4-wide, .mb-grid-why { grid-template-columns: 1fr; }
         .mb-search-grid { grid-template-columns: 1fr; }
+        .mb-landing-footer-inner { grid-template-columns: 1fr; }
       }
 
       @media (prefers-reduced-motion: reduce) {

@@ -6,31 +6,22 @@
  * to `.mb-home` so they never leak into the agent portal or admin panel, which
  * keep the existing navy/teal system.
  */
+/*
+ * All --mb-* color tokens are now defined at :root in app/globals.css so
+ * every marketing surface — landing AND (site) — can use them without
+ * importing this file. This scope now only carries the landing's page-
+ * specific ground/font application and the hover/reveal helpers below.
+ */
+/*
+ * Font aliases: --font-home-sans / --font-home-display used to point at
+ * separate Google fonts loaded by this route group. They now alias to the
+ * root layout's Plus_Jakarta_Sans + Fraunces so the landing and /(site)
+ * pages share one typographic stack (see app/layout.tsx). If you ever need
+ * a landing-only font, just re-load it here and reassign these variables.
+ */
 .mb-home {
-  /* ground + ink */
-  --mb-bg: oklch(0.975 0.007 60);
-  --mb-ink: oklch(0.17 0.01 30);
-  --mb-muted: oklch(0.42 0.015 30);
-  --mb-muted-2: oklch(0.55 0.015 30);
-  --mb-muted-3: oklch(0.5 0.015 30);
-
-  /* terracotta accent */
-  --mb-accent: oklch(0.55 0.11 32);
-  --mb-accent-dark: oklch(0.38 0.09 32);
-  --mb-accent-light: oklch(0.75 0.09 32);
-
-  /* rules + surfaces */
-  --mb-line: oklch(0.87 0.01 55);
-  --mb-line-2: oklch(0.9 0.008 55);
-  --mb-line-3: oklch(0.92 0.008 55);
-  --mb-surface: oklch(0.95 0.009 60);
-  --mb-cream-hover: oklch(0.9 0.01 40);
-
-  /* on-dark + misc */
-  --mb-on-dark: oklch(0.95 0.01 40 / 0.9);
-  --mb-green: oklch(0.6 0.13 145);
-  --mb-scrim: oklch(0.15 0.02 30 / 0.55);
-
+  --font-home-sans: var(--font-sans-var);
+  --font-home-display: var(--font-display-var);
   background: var(--mb-bg);
   color: var(--mb-ink);
   font-family: var(--font-home-sans), -apple-system, sans-serif;

@@ -45,6 +45,36 @@
 :root {
   --background: #ffffff;
   --foreground: #0f1e38;
+
+  /* -------------------------------------------------------------------- */
+  /*  Shared cream/terracotta palette                                      */
+  /* -------------------------------------------------------------------- */
+  /*  Originally scoped to `.mb-home` in app/(home)/home.css and used only  */
+  /*  by the landing. Promoted to :root so every marketing surface — the   */
+  /*  landing AND the /(site) pages (destinations, packages, tours, login, */
+  /*  about, contact, legal) — can share one visual identity.               */
+  /*  The `.mb-home` class still exists to keep the landing's page-specific */
+  /*  hover/reveal helpers scoped, but the tokens are no longer trapped     */
+  /*  inside it.                                                            */
+  --mb-bg: oklch(0.975 0.007 60);
+  --mb-ink: oklch(0.17 0.01 30);
+  --mb-muted: oklch(0.42 0.015 30);
+  --mb-muted-2: oklch(0.55 0.015 30);
+  --mb-muted-3: oklch(0.5 0.015 30);
+
+  --mb-accent: oklch(0.55 0.11 32);
+  --mb-accent-dark: oklch(0.38 0.09 32);
+  --mb-accent-light: oklch(0.75 0.09 32);
+
+  --mb-line: oklch(0.87 0.01 55);
+  --mb-line-2: oklch(0.9 0.008 55);
+  --mb-line-3: oklch(0.92 0.008 55);
+  --mb-surface: oklch(0.95 0.009 60);
+  --mb-cream-hover: oklch(0.9 0.01 40);
+
+  --mb-on-dark: oklch(0.95 0.01 40 / 0.9);
+  --mb-green: oklch(0.6 0.13 145);
+  --mb-scrim: oklch(0.15 0.02 30 / 0.55);
 }
 
 html {

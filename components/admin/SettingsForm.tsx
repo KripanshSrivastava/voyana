@@ -10,6 +10,7 @@ export type SettingsValue = {
   brandName: string; tagline: string; logoUrl: string; faviconUrl: string; heroImage: string;
   phone: string; whatsapp: string; email: string; address: string;
   facebook: string; instagram: string; twitter: string; youtube: string;
+  pinterest: string; linkedin: string;
   defaultLeadPrice: string; leadMaxAgents: string; leadExpiryHours: string;
   leadValidityDays: string;
   priceSharedDomestic: string; priceSharedInternational: string;
@@ -39,7 +40,14 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
         body: JSON.stringify({
           brandName: f.brandName, tagline: f.tagline, logoUrl: f.logoUrl, faviconUrl: f.faviconUrl, heroImage: f.heroImage,
           phone: f.phone, whatsapp: f.whatsapp, email: f.email, address: f.address,
-          socials: { facebook: f.facebook, instagram: f.instagram, twitter: f.twitter, youtube: f.youtube },
+          socials: {
+            facebook: f.facebook,
+            instagram: f.instagram,
+            twitter: f.twitter,
+            youtube: f.youtube,
+            pinterest: f.pinterest,
+            linkedin: f.linkedin,
+          },
           defaultLeadPrice: Number(f.defaultLeadPrice), leadMaxAgents: Number(f.leadMaxAgents), leadExpiryHours: Number(f.leadExpiryHours),
           leadValidityDays: Number(f.leadValidityDays),
           priceSharedDomestic: Number(f.priceSharedDomestic),
@@ -143,10 +151,12 @@ export function SettingsForm({ initial }: { initial: SettingsValue }) {
       <Card className="p-6 space-y-4">
         <h2 className="font-semibold text-navy-900">Social & tracking</h2>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Facebook"><Input value={f.facebook} onChange={(e) => set("facebook", e.target.value)} /></Field>
-          <Field label="Instagram"><Input value={f.instagram} onChange={(e) => set("instagram", e.target.value)} /></Field>
-          <Field label="Twitter / X"><Input value={f.twitter} onChange={(e) => set("twitter", e.target.value)} /></Field>
-          <Field label="YouTube"><Input value={f.youtube} onChange={(e) => set("youtube", e.target.value)} /></Field>
+          <Field label="Facebook"><Input value={f.facebook} onChange={(e) => set("facebook", e.target.value)} placeholder="https://facebook.com/…" /></Field>
+          <Field label="Instagram"><Input value={f.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="https://instagram.com/…" /></Field>
+          <Field label="Twitter / X"><Input value={f.twitter} onChange={(e) => set("twitter", e.target.value)} placeholder="https://x.com/…" /></Field>
+          <Field label="YouTube"><Input value={f.youtube} onChange={(e) => set("youtube", e.target.value)} placeholder="https://youtube.com/@…" /></Field>
+          <Field label="Pinterest"><Input value={f.pinterest} onChange={(e) => set("pinterest", e.target.value)} placeholder="https://pinterest.com/…" /></Field>
+          <Field label="LinkedIn"><Input value={f.linkedin} onChange={(e) => set("linkedin", e.target.value)} placeholder="https://linkedin.com/company/…" /></Field>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <Field label="GA4 ID"><Input value={f.gaId} onChange={(e) => set("gaId", e.target.value)} placeholder="G-…" /></Field>
