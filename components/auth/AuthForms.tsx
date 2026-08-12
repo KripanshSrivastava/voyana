@@ -9,22 +9,34 @@ import { broadcastAuthChange } from "@/lib/auth/broadcast";
 
 function Shell({ title, subtitle, brandName = "Moksh Booking", logoUrl, children }: { title: string; subtitle?: string; brandName?: string; logoUrl?: string | null; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy-950 px-4 py-12">
+    // Cream ground + terracotta accent — matches the landing page palette.
+    // Colors come from :root design tokens (see app/globals.css) so any theme
+    // change to the landing reflows here without editing this shell.
+    <div
+      className="flex min-h-screen items-center justify-center px-4 py-12"
+      style={{ background: "var(--mb-bg)", color: "var(--mb-ink)" }}
+    >
       <div className="w-full max-w-md">
-        <Link href="/" className="mb-6 flex items-center justify-center gap-2">
+        <Link href="/" className="mb-6 flex items-center justify-center gap-2" style={{ color: "var(--mb-ink)" }}>
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt={brandName} className="h-9 w-auto" />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-              <Plane className="h-5 w-5 -rotate-45 text-brand-300" />
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{ background: "var(--mb-accent)", color: "#fff" }}
+            >
+              <Plane className="h-5 w-5 -rotate-45" />
             </span>
           )}
-          <span className="text-2xl font-bold text-white">{brandName}</span>
+          <span className="text-2xl font-bold" style={{ color: "var(--mb-ink)" }}>{brandName}</span>
         </Link>
-        <div className="rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
-          <h1 className="text-2xl font-bold text-navy-900">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm text-navy-500">{subtitle}</p>}
+        <div
+          className="rounded-2xl p-8 shadow-lg"
+          style={{ background: "#fff", border: "1px solid var(--mb-line)" }}
+        >
+          <h1 className="text-2xl font-bold" style={{ color: "var(--mb-ink)" }}>{title}</h1>
+          {subtitle && <p className="mt-1 text-sm" style={{ color: "var(--mb-muted)" }}>{subtitle}</p>}
           <div className="mt-6">{children}</div>
         </div>
       </div>
@@ -87,20 +99,30 @@ export function LoginForm({
         </Field>
         {role === "AGENT" && (
           <div className="-mt-2 text-right">
-            <Link href="/agent/forgot-password" className="text-sm text-brand-700 hover:underline">
+            <Link
+              href="/agent/forgot-password"
+              className="text-sm hover:underline"
+              style={{ color: "var(--mb-accent)" }}
+            >
               Forgot password?
             </Link>
           </div>
         )}
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        <Button type="submit" variant="brand" size="lg" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={loading}
+          style={{ background: "var(--mb-accent)", color: "#fff" }}
+        >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
         </Button>
       </form>
       {role === "AGENT" && (
-        <p className="mt-5 text-center text-sm text-navy-500">
+        <p className="mt-5 text-center text-sm" style={{ color: "var(--mb-muted)" }}>
           New partner?{" "}
-          <Link href="/agent/signup" className="font-semibold text-brand-700">Create an account</Link>
+          <Link href="/agent/signup" className="font-semibold" style={{ color: "var(--mb-accent)" }}>Create an account</Link>
         </p>
       )}
     </Shell>

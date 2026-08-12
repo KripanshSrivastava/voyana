@@ -43,9 +43,12 @@ export const leadSchema = z
     departureCity: z.string().trim().max(120).optional().or(z.literal("")),
     travelDate: z.string().optional().nullable(),
     travelDateText: z.string().max(120).optional().or(z.literal("")),
-    travelers: z.coerce.number().int().min(1).max(999).optional().nullable(),
-    adults: z.coerce.number().int().min(0).max(999).optional().nullable(),
-    children: z.coerce.number().int().min(0).max(999).optional().nullable(),
+    // Cap at 50: even a large group tour rarely exceeds this. A "211
+    // travellers" enquiry that reached prod prompted this tighter cap —
+    // 999 was letting nonsense through unvalidated.
+    travelers: z.coerce.number().int().min(1).max(50, "Enter a realistic number of travellers (up to 50).").optional().nullable(),
+    adults: z.coerce.number().int().min(0).max(50, "Enter a realistic number of adults (up to 50).").optional().nullable(),
+    children: z.coerce.number().int().min(0).max(50, "Enter a realistic number of children (up to 50).").optional().nullable(),
     budget: z.coerce.number().int().min(0).max(100_000_000).optional().nullable(),
     tripType: z.string().max(60).optional().or(z.literal("")),
     requirements: z.array(z.string().max(60)).max(20).optional().default([]),
@@ -68,9 +71,9 @@ export const adminLeadSchema = z.object({
   destinationText: z.string().trim().min(2, "Destination is required").max(160),
   departureCity: z.string().trim().max(120).optional().or(z.literal("")),
   travelDate: z.string().optional().nullable(),
-  travelers: z.coerce.number().int().min(0).max(999).optional().nullable(),
-  adults: z.coerce.number().int().min(0).max(999).optional().nullable(),
-  children: z.coerce.number().int().min(0).max(999).optional().nullable(),
+  travelers: z.coerce.number().int().min(0).max(50).optional().nullable(),
+  adults: z.coerce.number().int().min(0).max(50).optional().nullable(),
+  children: z.coerce.number().int().min(0).max(50).optional().nullable(),
   nights: z.coerce.number().int().min(1).max(60).optional().nullable(),
   budget: z.coerce.number().int().min(0).max(100_000_000).optional().nullable(),
   tripType: z.string().max(60).optional().or(z.literal("")),

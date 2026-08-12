@@ -40,7 +40,7 @@ export async function issueCode(params: {
   email: string;
   name: string;
   type: VerificationType;
-}): Promise<{ sent: boolean }> {
+}): Promise<{ sent: boolean; delivered: boolean }> {
   const { userId, email, name, type } = params;
 
   await prisma.verificationToken.updateMany({
@@ -55,7 +55,12 @@ export async function issueCode(params: {
 
   const template = type === "TWO_FA" ? twoFactorCode({ name, code }) : verifyEmailCode({ name, code });
   const result = await sendEmail({ to: email, ...template, category: "verify" });
-  return { sent: result.ok };
+  // `skipped: true` means Resend is unconfigured or refused — the code
+  // exists in the DB and could still be manually surfaced (e.g. by an admin
+  // reading IntegrationLog), but the user won't receive an email.
+  // Bubble that up so callers can warn the user instead of silently claiming
+  // "check your inbox".
+  return { sent: result.ok, delivered: result.ok && !result.skipped };
 }
 
 export type VerifyResult = "OK" | "INVALID" | "EXPIRED" | "TOO_MANY_ATTEMPTS" | "NONE_PENDING";

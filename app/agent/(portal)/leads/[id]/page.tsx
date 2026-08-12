@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Phone, Mail, User, MapPin, Calendar, Users, Baby, Coins, Tag, Lock, MessageCircle } from "lucide-react";
+
+// Defensive: forbid any router-level RSC caching on the detail page. The
+// agent portal layout was serving a stale marketplace tree during client
+// navigation before this was set — Next's default "auto" heuristic decided
+// the parent /agent/leads segment was safe to reuse.
+export const dynamic = "force-dynamic";
 import { requireAgent } from "@/lib/guards";
 import { getAgentLead } from "@/lib/agent/leads";
 import { getSiteSettings } from "@/lib/settings";

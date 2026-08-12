@@ -1,15 +1,10 @@
-import { requireAgent } from "@/lib/guards";
-import { PageHeader } from "@/components/admin/ui";
-import { ChangePasswordForm } from "@/components/agent/ChangePasswordForm";
-import { SecurityToggle } from "@/components/agent/SecurityToggle";
+import { redirect } from "next/navigation";
 
-export default async function SettingsPage() {
-  const { session } = await requireAgent();
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Settings" subtitle="Manage your account security." />
-      <ChangePasswordForm />
-      <SecurityToggle initial={session.twoFactorEnabled} />
-    </div>
-  );
+/**
+ * Historical URL. Security controls used to live here — they moved to
+ * /agent/security so the sidebar can present a dedicated Security entry.
+ * Any bookmark on /agent/settings lands the user on the new page.
+ */
+export default function AgentSettingsPage() {
+  redirect("/agent/security");
 }

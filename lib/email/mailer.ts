@@ -49,8 +49,18 @@ export async function sendEmail(email: Email): Promise<{ ok: boolean; skipped?: 
   if (!key) {
     if (process.env.NODE_ENV !== "production") {
       console.info(`[email:dev] ${email.category} → ${email.to} · ${email.subject}`);
+      return { ok: true, skipped: true };
     }
-    return { ok: true, skipped: true };
+    // Silent no-ops in production are the reason "no email arrives" bugs
+    // are so hard to debug. Log to IntegrationLog so /admin/integrations/logs
+    // makes the misconfiguration visible.
+    await logIntegration({
+      integration: "email",
+      event: "send",
+      status: "FAILED",
+      message: `SKIPPED — RESEND_API_KEY not set (${email.category} → ${email.to})`,
+    });
+    return { ok: false, skipped: true };
   }
 
   try {

@@ -20,8 +20,14 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
     : { ok: false, reason: "INVALID" };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy-950 px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
+    <div
+      className="flex min-h-screen items-center justify-center px-4 py-12"
+      style={{ background: "var(--mb-bg)", color: "var(--mb-ink)" }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-8 shadow-lg"
+        style={{ background: "#fff", border: "1px solid var(--mb-line)" }}
+      >
         {inspection.ok ? (
           <ResetPasswordForm token={rawToken} email={inspection.email} brandName={settings.brandName} logoUrl={settings.logoUrl} />
         ) : (
@@ -29,24 +35,25 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
               <AlertTriangle className="h-6 w-6" />
             </span>
-            <h1 className="mt-4 font-display text-2xl font-bold text-navy-900">
+            <h1 className="mt-4 font-display text-2xl font-bold" style={{ color: "var(--mb-ink)" }}>
               {inspection.reason === "EXPIRED"
                 ? "This link has expired"
                 : inspection.reason === "USED"
                   ? "This link has already been used"
                   : "This link is invalid"}
             </h1>
-            <p className="mt-2 text-sm text-navy-500">
+            <p className="mt-2 text-sm" style={{ color: "var(--mb-muted)" }}>
               Reset links expire 30 minutes after they&apos;re issued and can only be used once. Request a fresh link and try again.
             </p>
             <Link
               href="/agent/forgot-password"
-              className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700"
+              className="mt-6 inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-semibold"
+              style={{ background: "var(--mb-accent)", color: "#fff" }}
             >
               Request a new link
             </Link>
             <div className="mt-4">
-              <Link href="/agent/login" className="text-sm text-navy-500 hover:text-navy-800">
+              <Link href="/agent/login" className="text-sm hover:underline" style={{ color: "var(--mb-muted)" }}>
                 Back to sign in
               </Link>
             </div>

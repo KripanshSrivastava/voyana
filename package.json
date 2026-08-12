@@ -8,7 +8,12 @@
     "start": "next start -p 3100",
     "lint": "eslint",
     "seed:test": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "vitest run",
+    "test:watch": "vitest",
+    "test:migrate": "dotenv -e .env.test -- prisma migrate deploy"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -40,10 +45,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.6.1",
+    "dotenv-cli": "^7.4.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, Briefcase, Wallet, User, LogOut, Menu, X, Plane, AlertTriangle, Bell, Settings, BadgeCheck, SlidersHorizontal, LifeBuoy, Megaphone, FilePlus2 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Briefcase, Wallet, User, LogOut, Menu, X, Plane, AlertTriangle, Bell, BadgeCheck, SlidersHorizontal, LifeBuoy, Megaphone, FilePlus2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
 import { AuthSync } from "@/components/auth/AuthSync";
@@ -18,7 +18,7 @@ const BASE_NAV = [
   { href: "/agent/notifications", label: "Notifications", icon: Bell },
   { href: "/agent/support", label: "Support", icon: LifeBuoy },
   { href: "/agent/profile", label: "Profile", icon: User },
-  { href: "/agent/settings", label: "Settings", icon: Settings },
+  { href: "/agent/security", label: "Security", icon: BadgeCheck },
 ];
 const ADS_NAV = { href: "/agent/ads", label: "My Ads", icon: Megaphone };
 const SUBMISSIONS_NAV = { href: "/agent/submissions", label: "Add Your Package", icon: FilePlus2 };

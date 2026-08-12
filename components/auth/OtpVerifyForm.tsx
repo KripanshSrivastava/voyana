@@ -106,9 +106,16 @@ export function OtpVerifyForm({
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="mb-6 text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600"><ShieldCheck className="h-6 w-6" /></span>
-        <h1 className="mt-4 font-display text-2xl font-bold text-navy-900">{title}</h1>
-        <p className="mt-1.5 text-sm text-navy-500">{subtitle}{email && <> to <strong className="text-navy-700">{email}</strong></>}.</p>
+        <span
+          className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl"
+          style={{ background: "var(--mb-accent)", color: "#fff" }}
+        >
+          <ShieldCheck className="h-6 w-6" />
+        </span>
+        <h1 className="mt-4 font-display text-2xl font-bold" style={{ color: "var(--mb-ink)" }}>{title}</h1>
+        <p className="mt-1.5 text-sm" style={{ color: "var(--mb-muted)" }}>
+          {subtitle}{email && <> to <strong style={{ color: "var(--mb-ink)" }}>{email}</strong></>}.
+        </p>
       </div>
 
       <form onSubmit={verify} aria-label="Verification code">
@@ -126,7 +133,8 @@ export function OtpVerifyForm({
               onKeyDown={(e) => onKeyDown(i, e)}
               onPaste={onPaste}
               aria-label={`Digit ${i + 1} of 6`}
-              className="h-12 w-10 rounded-xl border border-navy-200 text-center text-lg font-semibold text-navy-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 sm:h-14 sm:w-12"
+              className="h-12 w-10 rounded-xl border text-center text-lg font-semibold focus:outline-none focus:ring-2 sm:h-14 sm:w-12"
+              style={{ borderColor: "var(--mb-line)", color: "var(--mb-ink)" }}
             />
           ))}
         </div>
@@ -134,21 +142,39 @@ export function OtpVerifyForm({
         {error && <p role="alert" className="mt-4 text-center text-sm text-rose-600">{error}</p>}
         {success && <p className="mt-4 flex items-center justify-center gap-1 text-center text-sm text-emerald-600"><Check className="h-4 w-4" /> Verified — redirecting…</p>}
 
-        <Button type="submit" variant="brand" size="lg" className="mt-6 w-full" disabled={busy || success}>
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-6 w-full"
+          disabled={busy || success}
+          style={{ background: "var(--mb-accent)", color: "#fff" }}
+        >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
         </Button>
       </form>
 
-      <div className="mt-5 text-center text-sm text-navy-500">
+      <div className="mt-5 text-center text-sm" style={{ color: "var(--mb-muted)" }}>
         {cooldown > 0 ? (
           <span>Didn&apos;t receive it? Resend in {cooldown}s.</span>
         ) : (
-          <button type="button" onClick={resend} className="font-semibold text-brand-700 hover:underline">{resendLabel}</button>
+          <button
+            type="button"
+            onClick={resend}
+            className="font-semibold hover:underline"
+            style={{ color: "var(--mb-accent)" }}
+          >
+            {resendLabel}
+          </button>
         )}
       </div>
 
       <div className="mt-3 text-center">
-        <button type="button" onClick={signOutAndSwitch} className="text-xs text-navy-400 hover:text-navy-600 hover:underline">
+        <button
+          type="button"
+          onClick={signOutAndSwitch}
+          className="text-xs hover:underline"
+          style={{ color: "var(--mb-muted-2)" }}
+        >
           Wrong account? Sign out
         </button>
       </div>

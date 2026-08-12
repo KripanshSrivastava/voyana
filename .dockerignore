@@ -1,0 +1,36 @@
+# Nothing from local dev needs to end up in the image.
+.git
+.gitignore
+.github
+
+# Build outputs / caches — rebuilt inside the container.
+.next
+.turbo
+node_modules
+tsconfig.tsbuildinfo
+
+# Editor / OS junk
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local envs — real values are provided at runtime via docker-compose / VPS env.
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production.local
+.env.test
+.env.docker
+
+# Docs, tests, coverage — not needed at runtime.
+docs
+tests
+coverage
+*.log
+
+# Local docker artifacts
+docker-compose.override.yml
+letsencrypt
+traefik-logs

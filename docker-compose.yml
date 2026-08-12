@@ -1,0 +1,104 @@
+# -----------------------------------------------------------------------------
+#  Voyana / Moksh Booking — production Docker Compose (Hostinger VPS)
+#
+#  What this brings up:
+#    - `app`     the Next.js app in the multi-stage Docker image.
+#    - `traefik` an ingress reverse proxy that terminates HTTPS with a real
+#                Let's Encrypt certificate and forwards to the app.
+#
+#  What this does NOT bring up (deliberately):
+#    - Postgres  — you already use Supabase Postgres. Keep it.
+#    - Redis     — you already use Upstash. Keep it.
+#    - Object storage — Supabase Storage.
+#    - Email     — Resend.
+#
+#  Bring the whole stack up:      docker compose up -d
+#  Update after a code push:      docker compose build && docker compose up -d
+#  Follow app logs:               docker compose logs -f app
+#  Follow Traefik cert renewal:   docker compose logs -f traefik | grep acme
+# -----------------------------------------------------------------------------
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: voyana-app:latest
+    container_name: voyana-app
+    restart: unless-stopped
+    # Real environment variables come from `.env.production` (never committed).
+    # Docker Compose auto-loads a file called `.env` next to this compose file,
+    # so we point at our production file explicitly so you can keep a separate
+    # dev `.env` in the same repo without confusion.
+    env_file:
+      - .env.production
+    # Extra guardrails on top of whatever `.env.production` says.
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      HOSTNAME: 0.0.0.0
+    expose:
+      # Only exposed inside the compose network — Traefik reaches it, the
+      # outside world does not.
+      - "3100"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.voyana.rule=Host(`${APP_DOMAIN}`) || Host(`www.${APP_DOMAIN}`)"
+      - "traefik.http.routers.voyana.entrypoints=websecure"
+      - "traefik.http.routers.voyana.tls=true"
+      - "traefik.http.routers.voyana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.voyana.loadbalancer.server.port=3100"
+      # www → apex 301 redirect (browsers land on the canonical host).
+      - "traefik.http.middlewares.voyana-www-redirect.redirectregex.regex=^https?://www\\.(.*)"
+      - "traefik.http.middlewares.voyana-www-redirect.redirectregex.replacement=https://$$1"
+      - "traefik.http.middlewares.voyana-www-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.voyana.middlewares=voyana-www-redirect"
+      # Sensible security headers applied on every response.
+      - "traefik.http.middlewares.voyana-sec.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.voyana-sec.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.voyana-sec.headers.stsPreload=true"
+      - "traefik.http.middlewares.voyana-sec.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.voyana-sec.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.voyana-sec.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.routers.voyana.middlewares=voyana-www-redirect,voyana-sec"
+
+  traefik:
+    image: traefik:v3.1
+    container_name: voyana-traefik
+    restart: unless-stopped
+    command:
+      # Providers
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      # Let's Encrypt via HTTP-01 challenge (no DNS API needed).
+      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      # Access logs to stdout so `docker compose logs` sees them.
+      - "--accesslog=true"
+      # Turn on the dashboard/api only on the loopback interface — safer default.
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Docker socket so Traefik can discover services by label.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Persisted ACME state — DO NOT delete this or you'll hit Let's Encrypt
+      # rate limits after a re-deploy.
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge

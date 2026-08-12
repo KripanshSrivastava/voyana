@@ -1,9 +1,31 @@
 import { handler, ok, fail } from "@/lib/api";
 import { leadSchema } from "@/lib/validation";
 import { ingestLead, detectWebsiteSource } from "@/lib/leads/ingest";
+import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 
-/** Public website lead form. Delegates to the unified ingestion pipeline. */
+/**
+ * Public website lead form.
+ *
+ * Rate limiting — this endpoint is fully public and has no CAPTCHA or
+ * client-side token, so two layers of Redis throttling protect it:
+ *
+ *  1. **IP** — 20 submissions per 10 minutes. Catches single-host spammers
+ *     and bots iterating through a form fill.
+ *  2. **Phone number** — 3 submissions per hour for the exact same phone.
+ *     Catches campaigns that rotate IPs but reuse a phone (a common bot
+ *     pattern), and prevents a well-meaning user from accidentally spamming
+ *     the enquiry pipeline by mashing Submit.
+ *
+ * Both fail OPEN if Redis is unreachable. The dedup + idempotency logic in
+ * `ingestLead()` provides a final backstop: even if throttling is bypassed,
+ * duplicate leads within `leadExpiryHours` are flagged (not dropped) and
+ * webhook replays with the same (source, externalId) return the original.
+ */
 export const POST = handler(async (req: Request) => {
+  const ip = ipFromRequest(req);
+  const ipLimit = await rateLimit({ key: `leads:ip:${ip}`, windowSeconds: 60 * 10, max: 20 });
+  if (!ipLimit.allowed) return rateLimitResponse(ipLimit);
+
   const body = await req.json();
   const parsed = leadSchema.safeParse(body);
   if (!parsed.success) {
@@ -15,6 +37,15 @@ export const POST = handler(async (req: Request) => {
       return fail("Please check your details and try again.", 422);
     }
   }
+
+  // Second rate-limit gate: same phone number can't submit more than 3× / hour.
+  // Normalise to digits-only so `+91 98…` vs `9198…` still collide.
+  const phoneKey = d.phone.replace(/\D/g, "");
+  if (phoneKey) {
+    const phoneLimit = await rateLimit({ key: `leads:phone:${phoneKey}`, windowSeconds: 60 * 60, max: 3 });
+    if (!phoneLimit.allowed) return rateLimitResponse(phoneLimit, "You've already sent a few enquiries. We'll be in touch — please wait before submitting again.");
+  }
+
   const source = detectWebsiteSource(d.attribution);
   const requirements = d.leadFormType === "landing-popup" && d.nights
     ? [`${d.nights} nights`, ...(d.requirements ?? []).filter((r) => !/^\d+\s+nights?$/i.test(r))]

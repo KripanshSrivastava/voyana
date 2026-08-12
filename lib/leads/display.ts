@@ -85,25 +85,57 @@ export function leadDurationLabel(input: {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Timezone-explicit formatters. Server runs on Vercel (UTC) and the browser
+// runs in whatever timezone the visitor is in — usually IST for us. Any
+// formatter that reads the runtime timezone (Date.getHours(), .getDate()…)
+// will render different strings on server vs client and blow up hydration
+// with React #418 ("Text content did not match server-rendered HTML").
+//
+// We format in Asia/Kolkata explicitly via Intl.DateTimeFormat so SSR + CSR
+// always agree, regardless of process locale.
+// ---------------------------------------------------------------------------
+
+const DMY = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+const DMY_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
 /** DD/MM/YYYY (Indian convention — matches the rest of the app). */
 export function formatDMY(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return "";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()}`;
+  // "en-GB" produces `DD/MM/YYYY`.
+  return DMY.format(d);
 }
 
-/** DD/MM/YYYY • HH:MM AM/PM in the local timezone. */
+/** DD/MM/YYYY • HH:MM AM/PM in IST. */
 export function formatDMYTime(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return "";
-  const dmy = formatDMY(d);
-  const hh24 = d.getHours();
-  const mins = String(d.getMinutes()).padStart(2, "0");
-  const ampm = hh24 >= 12 ? "PM" : "AM";
-  const hh12 = String(((hh24 + 11) % 12) + 1).padStart(2, "0");
-  return `${dmy} • ${hh12}:${mins} ${ampm}`;
+  // en-GB with hour12 renders as `DD/MM/YYYY, HH:MM am/pm`.
+  // Split into date + time to keep the previous " • " visual separator.
+  const parts = DMY_TIME.formatToParts(d);
+  const grab = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const dd = grab("day");
+  const mm = grab("month");
+  const yy = grab("year");
+  const hh = grab("hour");
+  const mn = grab("minute");
+  const period = grab("dayPeriod").toUpperCase();
+  return `${dd}/${mm}/${yy} • ${hh}:${mn} ${period}`;
 }

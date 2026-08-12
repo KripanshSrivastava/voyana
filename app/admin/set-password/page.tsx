@@ -21,13 +21,19 @@ export const metadata: Metadata = {
 export default async function SetPasswordPage() {
   const settings = await getPublicSettings();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-navy-50 p-4">
+    <div
+      className="flex min-h-screen items-center justify-center p-4"
+      style={{ background: "var(--mb-bg)", color: "var(--mb-ink)" }}
+    >
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-900">
-            <Plane className="h-5 w-5 -rotate-45 text-brand-300" />
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{ background: "var(--mb-accent)", color: "#fff" }}
+          >
+            <Plane className="h-5 w-5 -rotate-45" />
           </span>
-          <span className="text-lg font-bold text-navy-900">{settings.brandName}</span>
+          <span className="text-lg font-bold" style={{ color: "var(--mb-ink)" }}>{settings.brandName}</span>
         </div>
         <SetPasswordCard />
       </div>

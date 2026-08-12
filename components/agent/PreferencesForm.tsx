@@ -4,12 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Check, Bell, Zap } from "lucide-react";
 import { Input, Field, Button, Card } from "@/components/ui";
-import { TRIP_CATEGORIES } from "@/lib/constants";
+import { TRIP_CATEGORIES, LEAD_QUALITIES } from "@/lib/constants";
 import { cn, titleCase } from "@/lib/utils";
+
+const QUALITY_OPTIONS = LEAD_QUALITIES.filter((q) => q !== "UNREVIEWED");
 
 export type PrefValue = {
   alertEmail: boolean; alertInApp: boolean; alertCategories: string[]; alertDestinations: string;
+  alertMinQuality: string; alertMinBudget: string; alertMaxBudget: string;
   autoBuyEnabled: boolean; autoBuyCategories: string[]; autoBuyDestinations: string; autoBuyClientLocations: string;
+  autoBuyMinQuality: string; autoBuyMinBudget: string; autoBuyMaxBudget: string;
 };
 
 function CategoryChips({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
@@ -39,13 +43,23 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
   async function save() {
     setBusy(true); setError(null);
     try {
+      const numOrNull = (s: string) => {
+        const n = Number(s.trim());
+        return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+      };
       const res = await fetch("/api/agent/preferences", {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           alertEmail: f.alertEmail, alertInApp: f.alertInApp, alertCategories: f.alertCategories,
           alertDestinations: toList(f.alertDestinations),
+          alertMinQuality: f.alertMinQuality || null,
+          alertMinBudget: numOrNull(f.alertMinBudget),
+          alertMaxBudget: numOrNull(f.alertMaxBudget),
           autoBuyEnabled: f.autoBuyEnabled, autoBuyCategories: f.autoBuyCategories,
           autoBuyDestinations: toList(f.autoBuyDestinations), autoBuyClientLocations: toList(f.autoBuyClientLocations),
+          autoBuyMinQuality: f.autoBuyMinQuality || null,
+          autoBuyMinBudget: numOrNull(f.autoBuyMinBudget),
+          autoBuyMaxBudget: numOrNull(f.autoBuyMaxBudget),
         }),
       });
       const json = await res.json();
@@ -67,6 +81,20 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
         </div>
         <Field label="Categories"><CategoryChips value={f.alertCategories} onChange={(v) => set("alertCategories", v)} /></Field>
         <Field label="Destinations (comma-separated)"><Input value={f.alertDestinations} onChange={(e) => set("alertDestinations", e.target.value)} placeholder="Kashmir, Goa, Dubai" /></Field>
+        <Field label="Minimum quality">
+          <select
+            value={f.alertMinQuality}
+            onChange={(e) => set("alertMinQuality", e.target.value)}
+            className="h-11 w-full rounded-lg border border-navy-200 bg-white px-3 text-navy-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          >
+            <option value="">Any quality</option>
+            {QUALITY_OPTIONS.map((q) => (<option key={q} value={q}>{titleCase(q)} or better</option>))}
+          </select>
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Minimum trip budget (₹)"><Input type="number" min={0} value={f.alertMinBudget} onChange={(e) => set("alertMinBudget", e.target.value)} placeholder="e.g. 20000" /></Field>
+          <Field label="Maximum trip budget (₹)"><Input type="number" min={0} value={f.alertMaxBudget} onChange={(e) => set("alertMaxBudget", e.target.value)} placeholder="e.g. 200000" /></Field>
+        </div>
       </Card>
 
       <Card className={cn("p-6 space-y-4", !autoBuyAllowed && "opacity-60")}>
@@ -83,6 +111,21 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Destinations (comma-separated)"><Input value={f.autoBuyDestinations} onChange={(e) => set("autoBuyDestinations", e.target.value)} placeholder="Kashmir, Manali" /></Field>
           <Field label="Client locations (comma-separated)"><Input value={f.autoBuyClientLocations} onChange={(e) => set("autoBuyClientLocations", e.target.value)} placeholder="Delhi, Mumbai" /></Field>
+        </div>
+        <Field label="Minimum quality">
+          <select
+            value={f.autoBuyMinQuality}
+            onChange={(e) => set("autoBuyMinQuality", e.target.value)}
+            disabled={!autoBuyAllowed}
+            className="h-11 w-full rounded-lg border border-navy-200 bg-white px-3 text-navy-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60"
+          >
+            <option value="">Any quality</option>
+            {QUALITY_OPTIONS.map((q) => (<option key={q} value={q}>{titleCase(q)} or better</option>))}
+          </select>
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Minimum trip budget (₹)"><Input type="number" min={0} disabled={!autoBuyAllowed} value={f.autoBuyMinBudget} onChange={(e) => set("autoBuyMinBudget", e.target.value)} placeholder="e.g. 20000" /></Field>
+          <Field label="Maximum trip budget (₹)"><Input type="number" min={0} disabled={!autoBuyAllowed} value={f.autoBuyMaxBudget} onChange={(e) => set("autoBuyMaxBudget", e.target.value)} placeholder="e.g. 200000" /></Field>
         </div>
       </Card>
 

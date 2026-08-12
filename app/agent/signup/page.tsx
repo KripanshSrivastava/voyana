@@ -13,7 +13,10 @@ export default async function AgentSignupPage() {
   if (session?.role === "AGENT") redirect("/agent/dashboard");
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div
+      className="grid min-h-screen lg:grid-cols-2"
+      style={{ background: "var(--mb-bg)", color: "var(--mb-ink)" }}
+    >
       <SignupShowcase brandName={settings.brandName} logoUrl={settings.logoUrl} />
 
       <div className="flex flex-col px-4 py-8 sm:px-8 lg:overflow-y-auto lg:py-12">
@@ -22,11 +25,14 @@ export default async function AgentSignupPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={settings.logoUrl} alt={settings.brandName} className="h-8 w-auto" />
           ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-900 text-white">
-              <Plane className="h-5 w-5 -rotate-45 text-brand-300" />
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-xl"
+              style={{ background: "var(--mb-accent)", color: "#fff" }}
+            >
+              <Plane className="h-5 w-5 -rotate-45" />
             </span>
           )}
-          <span className="font-display text-lg font-semibold text-navy-900">{settings.brandName}</span>
+          <span className="font-display text-lg font-semibold" style={{ color: "var(--mb-ink)" }}>{settings.brandName}</span>
         </Link>
 
         <div className="flex flex-1 items-center justify-center">
