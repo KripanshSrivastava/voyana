@@ -13,30 +13,96 @@ export type Socials = {
 };
 
 /**
- * Site settings are a singleton row. Always read live from the database —
- * this function also feeds feature flags (getFlags()) and business numbers
- * (leadMaxAgents, defaultLeadPrice) used by lead ingestion/purchase, so it
- * must never be cache-stale. Only the narrower getPublicSettings() below,
- * used purely for public marketing chrome, is cached.
+ * Values that match the `SiteSetting` defaults in `prisma/schema.prisma`.
+ * Used as a fallback when the database is unreachable — most notably at
+ * Docker build time (`next build` prerenders `/_not-found` which walks the
+ * root layout's `generateMetadata`, and there's no DB in the builder image).
+ * At runtime the real row is loaded and this branch never fires.
+ *
+ * NOTE: kept in-sync with `SiteSetting` defaults by hand. When the schema
+ * defaults change, update these too.
+ */
+const FALLBACK_SETTINGS = {
+  id: "default" as const,
+  brandName: "Moksh Booking",
+  tagline: "Your trip. Your way.",
+  logoUrl: null as string | null,
+  heroImage: null as string | null,
+  faviconUrl: null as string | null,
+  phone: null as string | null,
+  whatsapp: null as string | null,
+  email: null as string | null,
+  address: null as string | null,
+  socials: null as string | null,
+  defaultLeadPrice: 750,
+  leadMaxAgents: 2,
+  leadExpiryHours: 72,
+  leadValidityDays: 365,
+  priceSharedDomestic: 1,
+  priceSharedInternational: 1,
+  priceExclusiveDomestic: 2,
+  priceExclusiveInternational: 2,
+  adCostPerClickCredits: 10,
+  footerText: null as string | null,
+  defaultSeoTitle: null as string | null,
+  defaultSeoDescription: null as string | null,
+  gaId: null as string | null,
+  metaPixelId: null as string | null,
+  googleAdsId: null as string | null,
+  vendorAdsEnabled: false,
+  autoBuyEnabled: true,
+  supportEnabled: true,
+  packageMarketplaceEnabled: false,
+  updatedAt: new Date(0),
+};
+
+/** True when the process was started by `next build` — production compile,
+ *  not `next start`. Prisma queries during `next build` prerender pages
+ *  against whatever env is available, so if the DB is unreachable we want
+ *  a graceful fallback rather than a hard failure. */
+function isBuildPhase(): boolean {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
+/**
+ * Site settings are a singleton row. Always read live from the database in
+ * production — this function also feeds feature flags (getFlags()) and
+ * business numbers (leadMaxAgents, defaultLeadPrice) used by lead
+ * ingestion/purchase, so at runtime it must never be cache-stale.
+ *
+ * The one exception: during `next build`, if the DB is unreachable (typical
+ * inside a Docker builder or CI runner without prod DB access), we return
+ * FALLBACK_SETTINGS so the build can finish. This never affects real user
+ * traffic; the first live request re-hits the DB.
  */
 export async function getSiteSettings() {
-  return withReadRetry(async () => {
-    const existing = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    if (existing) return existing;
-    try {
-      return await prisma.siteSetting.upsert({
-        where: { id: "default" },
-        create: { id: "default" },
-        update: {},
-      });
-    } catch {
-      // Concurrent first-access (layout + page render in parallel on Postgres) can
-      // race two INSERTs — one wins, the other hits a unique violation. Re-read.
-      const row = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-      if (row) return row;
-      throw new Error("Failed to initialise site settings");
+  try {
+    return await withReadRetry(async () => {
+      const existing = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+      if (existing) return existing;
+      try {
+        return await prisma.siteSetting.upsert({
+          where: { id: "default" },
+          create: { id: "default" },
+          update: {},
+        });
+      } catch {
+        // Concurrent first-access (layout + page render in parallel on Postgres) can
+        // race two INSERTs — one wins, the other hits a unique violation. Re-read.
+        const row = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+        if (row) return row;
+        throw new Error("Failed to initialise site settings");
+      }
+    });
+  } catch (err) {
+    if (isBuildPhase()) {
+      // Expected during Docker builds: log once so developers know the fallback
+      // was used, but don't fail the build.
+      console.warn("[settings] DB unreachable during build — using FALLBACK_SETTINGS.");
+      return FALLBACK_SETTINGS;
     }
-  });
+    throw err;
+  }
 }
 
 /**
