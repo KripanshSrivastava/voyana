@@ -25,5 +25,11 @@ export const POST = handler(async (req: Request) => {
   const reason = result.reason;
   if (reason === "EXPIRED") return fail("This reset link has expired. Request a new one.", 410);
   if (reason === "USED") return fail("This reset link has already been used. Request a new one.", 410);
+  // SERVER_ERROR means OUR side failed (e.g. Supabase admin call rejected) —
+  // the token has been released, so tell the user to retry rather than
+  // sending them off to request a brand-new link they don't need.
+  if (reason === "SERVER_ERROR") {
+    return fail("We couldn't update your password just now. Please try again in a moment — this link is still valid.", 503);
+  }
   return fail("This reset link is invalid. Request a new one.", 400);
 });

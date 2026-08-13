@@ -65,9 +65,18 @@ services:
       - "traefik.http.routers.voyana.middlewares=voyana-www-redirect,voyana-sec"
 
   traefik:
-    image: traefik:v3.1
+    # Floating v3 tag so Traefik tracks Docker Engine API changes. Pinning to
+    # v3.1 broke against Docker Engine 29: Traefik's API-version negotiation
+    # fails and the underlying Go Docker library silently falls back to its
+    # hardcoded default of API 1.24, which Engine 29 rejects (min 1.40).
+    image: traefik:v3
     container_name: voyana-traefik
     restart: unless-stopped
+    environment:
+      # Belt-and-braces: skip negotiation entirely and pin the API version.
+      # Engine 29 speaks 1.55; 1.44 is the widest version every Engine
+      # since 25.x accepts, so this stays valid if the host is downgraded.
+      DOCKER_API_VERSION: "1.44"
     command:
       # Providers
       - "--providers.docker=true"
