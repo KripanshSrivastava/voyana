@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getPublishedPackages } from "@/lib/cms/queries";
 import { PackageCard } from "@/components/site/ContentCards";
-import { EmptyState, ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
+import { EmptyState } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Travel Packages",
@@ -12,6 +13,7 @@ export const revalidate = 300;
 
 export default async function PackagesPage() {
   const packages = await getPublishedPackages({ kind: "PACKAGE" });
+  const destinationNames = [...new Set(packages.map((p) => p.destination?.name).filter((n): n is string => Boolean(n)))];
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <header className="mb-10 max-w-2xl">
@@ -24,7 +26,7 @@ export default async function PackagesPage() {
         <EmptyState
           title="No packages published yet"
           description="Tell us what you're planning and we'll help you create the right trip."
-          action={<ButtonLink href="/request-quote" variant="primary">Get Free Quotes</ButtonLink>}
+          action={<GetQuoteButton variant="primary" destinations={destinationNames}>Get Free Quotes</GetQuoteButton>}
         />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

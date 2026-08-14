@@ -1,6 +1,6 @@
 import { Check, X, Clock, MapPin, Hotel, Bus, Star } from "lucide-react";
 import { Gallery } from "@/components/site/Gallery";
-import { ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
 import { formatINR, parseJson } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
@@ -28,10 +28,12 @@ export function PackageDetail({ p, basePath }: { p: FullPackage; basePath: strin
     p.durationText ||
     (p.durationDays ? `${p.durationDays} Days${p.durationNights ? ` / ${p.durationNights} Nights` : ""}` : null);
 
-  const quoteHref =
-    `/request-quote?packageId=${p.id}&package=${encodeURIComponent(p.title)}` +
-    (p.destination ? `&destination=${encodeURIComponent(p.destination.name)}` : "") +
-    (p.tripType ? `&tripType=${encodeURIComponent(p.tripType)}` : "");
+  const quotePrefill = {
+    destination: p.destination?.name,
+    destinationId: p.destinationId ?? undefined,
+    packageId: p.id,
+  };
+  const quoteDestinations = p.destination ? [p.destination.name] : undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -166,12 +168,12 @@ export function PackageDetail({ p, basePath }: { p: FullPackage; basePath: strin
             ) : (
               <span className="text-lg font-semibold text-brand-700">Custom pricing</span>
             )}
-            <ButtonLink href={quoteHref} variant="primary" size="lg" className="mt-5 w-full">
+            <GetQuoteButton variant="primary" size="lg" className="mt-5 w-full" prefill={quotePrefill} destinations={quoteDestinations}>
               Get Free Quotes
-            </ButtonLink>
-            <ButtonLink href={quoteHref} variant="outline" size="md" className="mt-3 w-full">
+            </GetQuoteButton>
+            <GetQuoteButton variant="outline" size="md" className="mt-3 w-full" prefill={quotePrefill} destinations={quoteDestinations}>
               Plan a similar trip
-            </ButtonLink>
+            </GetQuoteButton>
             <p className="mt-4 text-center text-xs text-navy-400">
               This is not a checkout. Request a free, no-obligation quote and an expert will tailor it to you.
             </p>

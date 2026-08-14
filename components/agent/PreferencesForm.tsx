@@ -10,7 +10,7 @@ import { cn, titleCase } from "@/lib/utils";
 const QUALITY_OPTIONS = LEAD_QUALITIES.filter((q) => q !== "UNREVIEWED");
 
 export type PrefValue = {
-  alertEmail: boolean; alertInApp: boolean; alertCategories: string[]; alertDestinations: string;
+  alertEmail: boolean; alertInApp: boolean; alertWhatsapp: boolean; alertCategories: string[]; alertDestinations: string;
   alertMinQuality: string; alertMinBudget: string; alertMaxBudget: string;
   autoBuyEnabled: boolean; autoBuyCategories: string[]; autoBuyDestinations: string; autoBuyClientLocations: string;
   autoBuyMinQuality: string; autoBuyMinBudget: string; autoBuyMaxBudget: string;
@@ -50,7 +50,8 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
       const res = await fetch("/api/agent/preferences", {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          alertEmail: f.alertEmail, alertInApp: f.alertInApp, alertCategories: f.alertCategories,
+          alertEmail: f.alertEmail, alertInApp: f.alertInApp, alertWhatsapp: f.alertWhatsapp,
+          alertCategories: f.alertCategories,
           alertDestinations: toList(f.alertDestinations),
           alertMinQuality: f.alertMinQuality || null,
           alertMinBudget: numOrNull(f.alertMinBudget),
@@ -78,7 +79,11 @@ export function PreferencesForm({ initial, autoBuyAllowed }: { initial: PrefValu
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.alertInApp} onChange={(e) => set("alertInApp", e.target.checked)} /> In-app</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.alertEmail} onChange={(e) => set("alertEmail", e.target.checked)} /> Email</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.alertWhatsapp} onChange={(e) => set("alertWhatsapp", e.target.checked)} /> WhatsApp</label>
         </div>
+        <p className="text-xs text-navy-400">
+          WhatsApp alerts go to your registered contact number. Make sure it&apos;s correct on your Profile page.
+        </p>
         <Field label="Categories"><CategoryChips value={f.alertCategories} onChange={(v) => set("alertCategories", v)} /></Field>
         <Field label="Destinations (comma-separated)"><Input value={f.alertDestinations} onChange={(e) => set("alertDestinations", e.target.value)} placeholder="Kashmir, Goa, Dubai" /></Field>
         <Field label="Minimum quality">

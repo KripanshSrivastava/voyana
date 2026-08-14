@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Phone, Mail, MapPin, MessageCircle } from "lucide-react";
-import { ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "Contact" };
@@ -62,7 +62,7 @@ export default async function ContactPage() {
       )}
 
       <div className="mt-10">
-        <ButtonLink href="/request-quote" variant="primary" size="lg">Get Free Quotes</ButtonLink>
+        <GetQuoteButton variant="primary" size="lg">Get Free Quotes</GetQuoteButton>
       </div>
     </div>
   );

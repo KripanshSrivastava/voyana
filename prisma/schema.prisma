@@ -118,6 +118,10 @@ model AgentPreference {
   // lead alerts
   alertEmail           Boolean   @default(true)
   alertInApp           Boolean   @default(true)
+  // WhatsApp alerts default to OFF: messaging someone on WhatsApp without
+  // them opting in is intrusive (and, for business-initiated templates,
+  // billable per conversation). Agents turn this on at /agent/preferences.
+  alertWhatsapp        Boolean   @default(false)
   alertCategories      String? // JSON array: DOMESTIC|INTERNATIONAL|INBOUND
   alertDestinations    String? // JSON array of keywords
   alertClientLocations String? // JSON array of keywords
@@ -756,6 +760,41 @@ model SiteSetting {
   supportEnabled              Boolean  @default(true)
   packageMarketplaceEnabled   Boolean  @default(false)
   updatedAt                   DateTime @updatedAt
+}
+
+/// Admin-editable copy for automated outbound messages.
+///
+/// Two very different kinds of row live here, distinguished by
+/// `sendsVerbatim`:
+///
+///  - `sendsVerbatim = true`  — the body IS what goes out. Used for
+///    click-to-chat (wa.me) links where the agent's own WhatsApp sends the
+///    message, so there is no provider approval step. Editing takes effect
+///    on the next page load.
+///
+///  - `sendsVerbatim = false` — the body is a MIRROR of a template that
+///    Meta has already approved. Editing it here does NOT change what
+///    actually sends; the admin must also update (and get re-approved) the
+///    template in Meta Business Manager. We store it so the exact wording +
+///    placeholder order has a single source of truth, and so the admin UI
+///    can show what to paste into Meta.
+///
+/// `providerTemplateName` / `language` DO take effect immediately for both
+/// kinds — they select which registered template to invoke.
+model MessageTemplate {
+  id                   String   @id @default(cuid())
+  key                  String   @unique // e.g. "whatsapp.agent_intro"
+  channel              String   @default("WHATSAPP")
+  label                String
+  description          String?
+  body                 String
+  providerTemplateName String?
+  language             String   @default("en")
+  sendsVerbatim        Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([channel])
 }
 
 model Campaign {

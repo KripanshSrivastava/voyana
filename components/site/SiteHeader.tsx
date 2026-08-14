@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Plane } from "lucide-react";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -109,8 +110,7 @@ export function SiteHeader({ brandName, logoUrl }: { brandName: string; logoUrl?
           <Link href="/login" style={{ fontSize: 14.5, color: linkColor, textDecoration: "none", fontWeight: 500 }}>
             Login
           </Link>
-          <Link
-            href="/request-quote"
+          <GetQuoteButton
             style={{
               fontSize: 14,
               fontWeight: 500,
@@ -118,11 +118,13 @@ export function SiteHeader({ brandName, logoUrl }: { brandName: string; logoUrl?
               background: "var(--mb-accent)",
               padding: "10px 18px",
               borderRadius: 5,
-              textDecoration: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "inherit",
             }}
           >
             Get Free Quotes
-          </Link>
+          </GetQuoteButton>
           <button
             type="button"
             aria-label="Menu"

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClipboardList, Users, MessagesSquare, PlaneTakeoff } from "lucide-react";
-import { ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
 
 export const metadata: Metadata = { title: "How It Works" };
 export const revalidate = 3600;
@@ -41,7 +41,7 @@ export default function HowItWorksPage() {
       </div>
 
       <div className="mt-12 text-center">
-        <ButtonLink href="/request-quote" variant="primary" size="lg">Get Free Quotes</ButtonLink>
+        <GetQuoteButton variant="primary" size="lg">Get Free Quotes</GetQuoteButton>
       </div>
     </div>
   );

@@ -97,6 +97,14 @@ body {
   font-weight: 500;
 }
 
+/* Shared with the landing page's LandingStyles component (which redefines
+   the same rule scoped to the home route) — kept here too so LeadPopupModal
+   gets identical hover behavior when it renders on a /(site) page instead
+   of the landing page. Harmless duplicate, same value, last-one-wins. */
+.mb-btn-accent:hover {
+  background: var(--mb-accent-dark);
+}
+
 /* Cinematic navy hero with a soft teal aurora — GPU-cheap, no image needed. */
 .hero-gradient {
   background:

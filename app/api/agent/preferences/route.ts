@@ -53,6 +53,7 @@ export const PUT = handler(async (req: Request) => {
   const data = {
     alertEmail: Boolean(b.alertEmail),
     alertInApp: b.alertInApp === undefined ? true : Boolean(b.alertInApp),
+    alertWhatsapp: Boolean(b.alertWhatsapp),
     alertCategories: JSON.stringify(arr(b.alertCategories)),
     alertDestinations: JSON.stringify(arr(b.alertDestinations)),
     alertMinQuality: optQuality(b.alertMinQuality),

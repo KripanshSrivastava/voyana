@@ -7,7 +7,12 @@ import path from "node:path";
 
 export default defineConfig({
   test: {
-    include: ["tests/rate-limit.test.ts", "tests/lockout.test.ts"],
+    include: [
+      "tests/rate-limit.test.ts",
+      "tests/lockout.test.ts",
+      "tests/whatsapp-phone.test.ts",
+      "tests/message-render.test.ts",
+    ],
     testTimeout: 5_000,
     globals: false,
     reporters: ["default"],

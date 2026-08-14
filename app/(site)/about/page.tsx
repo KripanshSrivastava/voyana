@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
 import { getPublicSettings } from "@/lib/settings";
 
 export const metadata: Metadata = { title: "About" };
@@ -27,7 +27,7 @@ export default async function AboutPage() {
         <li>• Your privacy respected at every step</li>
       </ul>
       <div className="mt-10">
-        <ButtonLink href="/request-quote" variant="primary" size="lg">Start planning</ButtonLink>
+        <GetQuoteButton variant="primary" size="lg">Start planning</GetQuoteButton>
       </div>
     </div>
   );

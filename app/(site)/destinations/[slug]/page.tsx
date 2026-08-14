@@ -5,7 +5,8 @@ import { Calendar, Check, MapPin } from "lucide-react";
 import { getDestinationBySlug } from "@/lib/cms/queries";
 import { getPublishedPackages } from "@/lib/cms/queries";
 import { PackageCard } from "@/components/site/ContentCards";
-import { ButtonLink, EmptyState } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
+import { EmptyState } from "@/components/ui";
 import { parseJson } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -39,7 +40,8 @@ export default async function DestinationDetail({ params }: { params: Promise<{ 
   const tours = await getPublishedPackages({ kind: "TOUR", destinationId: d.id });
   const packages = d.packages.filter((p) => p.kind === "PACKAGE");
 
-  const quoteHref = `/request-quote?destination=${encodeURIComponent(d.name)}&destinationId=${d.id}`;
+  const quotePrefill = { destination: d.name, destinationId: d.id };
+  const quoteDestinations = [d.name];
 
   return (
     <>
@@ -115,9 +117,9 @@ export default async function DestinationDetail({ params }: { params: Promise<{ 
                 ))}
               </div>
             )}
-            <ButtonLink href={quoteHref} variant="primary" size="lg" className="mt-6 w-full">
+            <GetQuoteButton variant="primary" size="lg" className="mt-6 w-full" prefill={quotePrefill} destinations={quoteDestinations}>
               Get Free Quotes
-            </ButtonLink>
+            </GetQuoteButton>
           </div>
         </aside>
       </div>
@@ -130,7 +132,7 @@ export default async function DestinationDetail({ params }: { params: Promise<{ 
             <EmptyState
               title="Packages are being updated"
               description={`Tell us what you're planning for ${d.name} and we'll help you create the right trip.`}
-              action={<ButtonLink href={quoteHref} variant="primary">Get Free Quotes</ButtonLink>}
+              action={<GetQuoteButton variant="primary" prefill={quotePrefill} destinations={quoteDestinations}>Get Free Quotes</GetQuoteButton>}
             />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -9,6 +9,8 @@ import { sendEmail } from "../email/mailer";
 import { customerLeadReceived, adminNewLead } from "../email/templates";
 import { runLeadAlerts } from "./alerts";
 import { runAutoBuyForLead } from "./autobuy";
+import { sendWhatsAppTemplate } from "../whatsapp/client";
+import { customerEnquiryAckTemplate } from "../whatsapp/templates";
 
 export type IngestAttribution = {
   utmSource?: string | null; utmMedium?: string | null; utmCampaign?: string | null;
@@ -224,6 +226,17 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
     const t = customerLeadReceived({ name: input.customerName, code: created.code, destination: input.destinationText });
     sideEffects.push(sendEmail({ to: email, ...t, category: "leads" }));
   }
+  // WhatsApp acknowledgement to the customer. Fires for every ingestion
+  // channel (website form, Google/Meta lead ads, partner API) because a
+  // customer who filled a form anywhere expects to hear back. Skips itself
+  // when the phone can't be normalised or WhatsApp isn't configured.
+  sideEffects.push(
+    customerEnquiryAckTemplate({
+      customerName: input.customerName,
+      destination: input.destinationText,
+      leadCode: created.code,
+    }).then((tpl) => sendWhatsAppTemplate(phone, tpl, "customer_ack", { leadId: created!.id })),
+  );
   if (adminEmail) {
     const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });
     sideEffects.push(sendEmail({ to: adminEmail, ...t, category: "leads" }));

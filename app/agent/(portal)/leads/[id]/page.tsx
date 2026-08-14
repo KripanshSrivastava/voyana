@@ -16,6 +16,8 @@ import { Card, Badge, EmptyState } from "@/components/ui";
 import { computeLeadCharge, exclusiveEligible, requiresExclusive, priceToCredits } from "@/lib/leads/pricing";
 import { leadTravellersLabel, leadDurationLabel } from "@/lib/leads/display";
 import { formatDate, parseJson } from "@/lib/utils";
+import { whatsAppDeepLink } from "@/lib/whatsapp/phone";
+import { agentIntroMessage } from "@/lib/whatsapp/templates";
 
 export default async function AgentLeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,6 +27,7 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
     getSiteSettings(),
   ]);
   if (!data) notFound();
+  const brandName = settings.brandName;
   const { lead, assignment, owned } = data;
   // Purchase charges are computed server-side (never trust client) via the
   // same helper the /agent/leads grid uses, so the number in the sidebar
@@ -48,9 +51,28 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
   const priceCredits = priceToCredits(price);
   const full = lead.assignmentCount >= lead.maxAgents;
   const credits = agent.creditBalance?.balance ?? 0;
-  const whatsapp = lead.phone.replace(/[^\d]/g, "");
   const travellers = leadTravellersLabel({ travelers: lead.travelers, adults: lead.adults, children: lead.children });
   const duration = leadDurationLabel({ nights: lead.nights, requirements });
+  // Click-to-chat link with the opening message pre-composed. The agent still
+  // presses send in their own WhatsApp, so this needs no Meta template
+  // approval — it's a user-initiated message, not a business broadcast.
+  // Returns null when the stored phone can't be normalised; the button is
+  // hidden in that case rather than rendering a broken wa.me link.
+  // Only build the link for a purchased lead — the customer's phone is
+  // locked until then, and the intro text embeds their name.
+  const whatsappHref = owned
+    ? whatsAppDeepLink(
+        lead.phone,
+        await agentIntroMessage({
+          customerName: lead.customerName,
+          destination: lead.destination?.name || lead.destinationText,
+          agentCompany: agent.companyName,
+          brandName,
+          travelDate: lead.travelDate ? formatDate(lead.travelDate) : lead.travelDateText,
+          travellers,
+        }),
+      )
+    : null;
 
   return (
     <div>
@@ -114,7 +136,17 @@ export default async function AgentLeadDetail({ params }: { params: Promise<{ id
             {owned && (
               <div className="mt-4 flex flex-wrap gap-2">
                 <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"><Phone className="h-4 w-4" /> Call</a>
-                <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
+                {whatsappHref && (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Opens WhatsApp with a ready-to-send intro message"
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+                  >
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                )}
                 {lead.email && <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-2 rounded-full border border-navy-200 px-4 py-2 text-sm font-semibold text-navy-700 hover:bg-navy-50"><Mail className="h-4 w-4" /> Email</a>}
               </div>
             )}

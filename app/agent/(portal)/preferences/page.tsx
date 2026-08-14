@@ -15,6 +15,7 @@ export default async function PreferencesPage() {
   const initial: PrefValue = {
     alertEmail: pref?.alertEmail ?? true,
     alertInApp: pref?.alertInApp ?? true,
+    alertWhatsapp: pref?.alertWhatsapp ?? false,
     alertCategories: parseJson<string[]>(pref?.alertCategories ?? null, []),
     alertDestinations: parseJson<string[]>(pref?.alertDestinations ?? null, []).join(", "),
     alertMinQuality: pref?.alertMinQuality ?? "",

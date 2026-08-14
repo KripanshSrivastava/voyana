@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Users, Wallet, TrendingUp, Megaphone, MapPin,
   Package, Compass, Image as ImageIcon, Settings, LogOut, Menu, X, Plane, Inbox,
   Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon, ClipboardCheck, Headset, ShieldCheck,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
@@ -42,6 +43,7 @@ const GROUPS: { label: string; items: { href: string; label: string; icon: React
   {
     label: "Platform",
     items: [
+      { href: "/admin/messaging", label: "Messaging", icon: MessageSquare },
       { href: "/admin/integrations", label: "Integrations", icon: Plug },
       { href: "/admin/audit", label: "Audit log", icon: ScrollText },
       { href: "/admin/settings", label: "Settings", icon: Settings },

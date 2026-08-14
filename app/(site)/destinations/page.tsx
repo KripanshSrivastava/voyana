@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getPublishedDestinations } from "@/lib/cms/queries";
 import { DestinationCard } from "@/components/site/ContentCards";
-import { EmptyState, ButtonLink } from "@/components/ui";
+import { GetQuoteButton } from "@/components/site/GetQuoteButton";
+import { EmptyState } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Destinations",
@@ -12,6 +13,8 @@ export const revalidate = 300;
 
 export default async function DestinationsPage() {
   const destinations = await getPublishedDestinations({ featuredFirst: true });
+  // Already loaded for the grid — free autocomplete data for the modal, no extra query.
+  const destinationNames = destinations.map((d) => d.name);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -26,7 +29,7 @@ export default async function DestinationsPage() {
         <EmptyState
           title="Destinations are being updated"
           description="Tell us where you'd like to go and we'll help you plan the right trip."
-          action={<ButtonLink href="/request-quote" variant="primary">Get Free Quotes</ButtonLink>}
+          action={<GetQuoteButton variant="primary" destinations={destinationNames}>Get Free Quotes</GetQuoteButton>}
         />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
