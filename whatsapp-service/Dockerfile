@@ -10,6 +10,13 @@
 
 FROM node:20-bookworm-slim
 
+# One of Baileys' dependencies resolves from a git URL rather than the npm
+# registry, so npm needs a real `git` binary on PATH to install it.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 whatsapp \
