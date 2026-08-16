@@ -19,6 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
+# Chromium resolves its home directory from the passwd entry, not $HOME —
+# our system user (below) has no real home dir, so crashpad (crash-report
+# handler) fails to find a writable location and refuses to launch
+# ("chrome_crashpad_handler: --database is required"). Point it at a
+# writable path directly instead of relying on a home dir that doesn't exist.
+ENV XDG_CONFIG_HOME=/tmp/.chromium
+ENV XDG_CACHE_HOME=/tmp/.chromium
 
 WORKDIR /app
 
