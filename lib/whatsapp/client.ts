@@ -3,12 +3,13 @@ import { logIntegration } from "../integrations/log";
 import { toWhatsAppNumber } from "./phone";
 
 /**
- * Outbound WhatsApp messaging via a self-hosted **open-wa** service
- * (`whatsapp-service/`) — an UNOFFICIAL WhatsApp Web automation client, not
- * Meta's Cloud API. It drives a real, persistently logged-in WhatsApp
- * session, so this file talks to it over the private Docker network rather
- * than an HTTPS API. See docs/WHATSAPP.md for the setup and the tradeoffs
- * (ban risk, no official support) that come with this approach.
+ * Outbound WhatsApp messaging via a self-hosted **Baileys** service
+ * (`whatsapp-service/`) — an UNOFFICIAL WhatsApp client speaking the
+ * multi-device protocol directly over a WebSocket, not Meta's Cloud API. It
+ * drives a real, persistently logged-in WhatsApp session, so this file
+ * talks to it over the private Docker network rather than an HTTPS API. See
+ * docs/WHATSAPP.md for the setup and the tradeoffs (ban risk, no official
+ * support) that come with this approach.
  *
  * Design mirrors lib/email/mailer.ts on purpose:
  *  - Provider details live behind one function, so switching to Meta Cloud
@@ -18,7 +19,7 @@ import { toWhatsAppNumber } from "./phone";
  *  - Silent no-ops are logged to IntegrationLog in production so a missing
  *    config shows up at /admin/integrations/logs instead of vanishing.
  *
- * Unlike Meta's API, open-wa sends plain text — there's no provider-side
+ * Unlike Meta's API, Baileys sends plain text — there's no provider-side
  * template approval, so callers just pass the fully-rendered message.
  */
 

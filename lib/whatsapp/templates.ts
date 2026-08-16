@@ -10,7 +10,7 @@ import { renderTemplate } from "../messaging/render";
  * fallback. These functions are therefore async — they read the current
  * template before rendering it.
  *
- * All three return a plain string, sent verbatim. open-wa has no
+ * All three return a plain string, sent verbatim. Baileys has no
  * provider-side template/approval concept — unlike Meta's Cloud API, there
  * is nothing to register, so the admin's edited body is exactly what sends.
  */

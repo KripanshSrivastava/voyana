@@ -2,13 +2,15 @@
   "name": "voyana-whatsapp-service",
   "version": "0.1.0",
   "private": true,
-  "description": "Internal-only service that owns the open-wa WhatsApp Web session and exposes it to the main app over the Docker network. See docs/WHATSAPP.md.",
+  "description": "Internal-only service that owns the WhatsApp session (Baileys) and exposes it to the main app over the Docker network. See docs/WHATSAPP.md.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@open-wa/wa-automate": "^4.66.0",
-    "express": "^4.21.2"
+    "@whiskeysockets/baileys": "^7.0.0",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }

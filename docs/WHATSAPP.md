@@ -1,6 +1,6 @@
 # WhatsApp Integration
 
-Three features. A and B send through a self-hosted **open-wa** service; C needs nothing.
+Three features. A and B send through a self-hosted **Baileys** service; C needs nothing.
 
 | Feature | What it does | Needs the service? | Status |
 |---|---|---|---|
@@ -16,7 +16,7 @@ A and B require the steps below.
 
 ## ⚠️ Read this before you set anything up
 
-A and B send through **open-wa**, an unofficial library that automates a real, logged-in WhatsApp Web session — it is **not** Meta's Cloud API. That trade buys you instant setup and freeform messages with no template approval, at a real cost:
+A and B send through **Baileys**, an unofficial library that speaks WhatsApp's multi-device protocol directly over a WebSocket (no browser involved) — it is **not** Meta's Cloud API. That trade buys you instant setup, a lightweight service, and freeform messages with no template approval, at a real cost:
 
 - **The connected number can be banned by WhatsApp with no appeal guaranteed.** Automated/bulk sending from an unofficial client is against WhatsApp's Terms of Service, and their abuse detection does act on it.
 - **Use a dedicated number**, never someone's personal WhatsApp — a ban takes down whatever else that number was used for.
@@ -29,8 +29,8 @@ A and B send through **open-wa**, an unofficial library that automates a real, l
 ## Architecture
 
 ```
-whatsapp-service/          Separate container — owns the open-wa client and
-├── server.js               the logged-in WhatsApp Web session. Exposes:
+whatsapp-service/          Separate container — owns the Baileys client and
+├── server.js               the logged-in WhatsApp session. Exposes:
 ├── package.json              GET  /health
 └── Dockerfile                 POST /send { to, text }
                              Internal only: no Traefik label, no host port —
@@ -48,11 +48,11 @@ Design mirrors `lib/email/mailer.ts`:
 - **Fails visibly.** When unconfigured in production, it writes a `FAILED` row to `IntegrationLog` so the gap shows at `/admin/integrations/logs` — rather than silently doing nothing, which is what made the 2FA email bug so hard to find.
 - **Provider-swappable.** To move to Meta Cloud API / AiSensy / Interakt / Twilio, rewrite `postToProvider()` in `lib/whatsapp/client.ts`. Nothing else changes.
 
-Unlike Meta's Cloud API, open-wa sends **plain text** — there's no provider-side template registration or approval. Whatever an admin saves at `/admin/messaging` is exactly what sends, immediately.
+Unlike Meta's Cloud API, Baileys sends **plain text** — there's no provider-side template registration or approval. Whatever an admin saves at `/admin/messaging` is exactly what sends, immediately.
 
 ---
 
-## Setup — self-hosted open-wa service
+## Setup — self-hosted Baileys service
 
 ### 1. Pick a number
 
@@ -81,7 +81,7 @@ docker compose logs -f whatsapp
 
 An ASCII QR code prints to the log. On the number from step 1: **WhatsApp → Linked Devices → Link a Device**, and scan it.
 
-Once linked, the log shows `client ready — session linked.` and the session is written to the `whatsapp-session` Docker volume — it survives container restarts, so this is normally a **one-time step**. You'll need to re-scan if:
+Once linked, the log shows `connected — session linked.` and the session is written to the `whatsapp-session` Docker volume — it survives container restarts, so this is normally a **one-time step**. You'll need to re-scan if:
 - the phone is logged out of Linked Devices (manually, or by WhatsApp after ~14 days offline),
 - the `whatsapp-session` volume is deleted,
 - WhatsApp forces a re-auth after flagging the session.
@@ -157,7 +157,7 @@ Covered by 15 unit tests in `tests/whatsapp-phone.test.ts`. Run with `npm run te
 
 If the number gets banned, or you'd rather have Meta's official support and compliance guarantees, move to Meta's WhatsApp Cloud API (or a reseller like AiSensy/Interakt/Wati that wraps it):
 
-1. Rewrite `postToProvider()` in `lib/whatsapp/client.ts` — it's the one function that knows how to reach open-wa; swap it for the provider's HTTP call.
+1. Rewrite `postToProvider()` in `lib/whatsapp/client.ts` — it's the one function that knows how to reach the Baileys service; swap it for the provider's HTTP call.
 2. Meta requires pre-approved templates for business-initiated messages — you'll need to re-register wording for `whatsapp.lead_alert` and `whatsapp.customer_ack` (the current bodies at `/admin/messaging` are a reasonable starting point) and flip `sendsVerbatim: false` for those two keys back on in `lib/messaging/defaults.ts` so the admin UI shows the approval warning again.
 3. Retire the `whatsapp` container and the `whatsapp-session` volume.
 

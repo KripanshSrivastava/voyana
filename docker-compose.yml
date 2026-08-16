@@ -3,7 +3,7 @@
 #
 #  What this brings up:
 #    - `app`      the Next.js app in the multi-stage Docker image.
-#    - `whatsapp` internal-only open-wa sender (unofficial WhatsApp Web
+#    - `whatsapp` internal-only Baileys sender (unofficial WhatsApp
 #                 automation). Not reachable from outside this compose
 #                 network — see docs/WHATSAPP.md.
 #    - `traefik`  an ingress reverse proxy that terminates HTTPS with a real
@@ -83,7 +83,7 @@ services:
       # network at http://whatsapp:4000. See docs/WHATSAPP.md.
       - "4000"
     volumes:
-      # Persists the linked WhatsApp Web session (open-wa). Deleting this
+      # Persists the linked WhatsApp session (Baileys). Deleting this
       # forces a fresh QR-code re-scan on next start.
       - whatsapp-session:/app/session
     networks:
@@ -138,6 +138,6 @@ networks:
     driver: bridge
 
 volumes:
-  # WhatsApp Web session (open-wa). Don't delete casually — losing it means
+  # WhatsApp session (Baileys). Don't delete casually — losing it means
   # re-scanning the QR code from the connected phone's Linked Devices.
   whatsapp-session:
