@@ -30,7 +30,11 @@ create({
   multiDevice: true,
   sessionDataPath: SESSION_DATA_PATH,
   headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+  // No executablePath override — wa-automate's injection scripts are tested
+  // against the Chromium version its own `puppeteer` dependency downloads.
+  // Pointing it at a much newer system Chromium (e.g. Debian's apt package)
+  // loads the page fine but the internal WhatsApp Store never initializes,
+  // silently timing out before a QR is ever generated.
   qrTimeout: 0, // never give up waiting for the first scan
   authTimeout: 0,
   disableSpins: true,

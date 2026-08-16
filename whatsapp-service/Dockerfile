@@ -10,14 +10,20 @@
 
 FROM node:20-bookworm-slim
 
+# `chromium` here is installed only for its shared libraries (libnss3,
+# libgbm1, fonts, etc.) — every Chromium build needs the same runtime libs
+# regardless of version. The actual browser binary wa-automate launches is
+# the one its own `puppeteer` dependency downloads below (npm install, no
+# PUPPETEER_SKIP_DOWNLOAD): that version is the one its injection scripts
+# are tested against. Pointing it at Debian's much newer system Chromium
+# instead loads WhatsApp Web fine but the internal Store never initializes,
+# so the QR is never generated — a 30s timeout with no clear error.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NODE_ENV=production
 # Chromium resolves its home directory from the passwd entry, not $HOME —
 # our system user (below) has no real home dir, so crashpad (crash-report
