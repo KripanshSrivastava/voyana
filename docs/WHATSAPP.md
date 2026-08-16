@@ -1,138 +1,114 @@
 # WhatsApp Integration
 
-Three features, two of which need a WhatsApp Business API provider.
+Three features. A and B send through a self-hosted **open-wa** service; C needs nothing.
 
-| Feature | What it does | Needs API? | Status |
+| Feature | What it does | Needs the service? | Status |
 |---|---|---|---|
 | **A** | Agent gets a WhatsApp alert when a matching lead arrives | Yes | ✅ Implemented |
 | **B** | Customer gets an auto-acknowledgement after submitting an enquiry | Yes | ✅ Implemented |
 | **C** | Agent taps a button to open WhatsApp with a pre-written intro to the customer | **No** | ✅ Implemented |
 
-**Feature C works right now with zero setup.** It's a `wa.me` click-to-chat link — the agent's own WhatsApp sends the message, so no API, no cost, no template approval. If you do nothing else in this document, C is already live.
+**Feature C works right now with zero setup.** It's a `wa.me` click-to-chat link — the agent's own WhatsApp sends the message, so no service, no cost, no linking. If you do nothing else in this document, C is already live.
 
 A and B require the steps below.
+
+---
+
+## ⚠️ Read this before you set anything up
+
+A and B send through **open-wa**, an unofficial library that automates a real, logged-in WhatsApp Web session — it is **not** Meta's Cloud API. That trade buys you instant setup and freeform messages with no template approval, at a real cost:
+
+- **The connected number can be banned by WhatsApp with no appeal guaranteed.** Automated/bulk sending from an unofficial client is against WhatsApp's Terms of Service, and their abuse detection does act on it.
+- **Use a dedicated number**, never someone's personal WhatsApp — a ban takes down whatever else that number was used for.
+- **Keep volume modest and only message people with a reason to expect it** (an agent who opted in, a customer who just submitted their own enquiry). Don't repurpose this pipe for anything bulk.
+- **The connected phone must stay powered on and online.** WhatsApp's multi-device linking requires the phone to check in periodically — if it's off for too long, the session drops and needs re-linking.
+- If the number does get banned, or this approach stops being viable, **Meta's Cloud API is the documented fallback** — see [Switching back to an official provider](#switching-back-to-an-official-provider) below.
 
 ---
 
 ## Architecture
 
 ```
+whatsapp-service/          Separate container — owns the open-wa client and
+├── server.js               the logged-in WhatsApp Web session. Exposes:
+├── package.json              GET  /health
+└── Dockerfile                 POST /send { to, text }
+                             Internal only: no Traefik label, no host port —
+                             only `app` reaches it, over the compose network.
+
 lib/whatsapp/
 ├── phone.ts       Number normalisation (+91 handling) and wa.me link builder
-├── client.ts      Meta Cloud API sender — the ONLY provider-specific file
-└── templates.ts   Template names + parameter ordering
+├── client.ts      Calls whatsapp-service — the ONLY provider-specific file
+└── templates.ts   Renders the admin-edited message body per event
 ```
 
 Design mirrors `lib/email/mailer.ts`:
 
 - **Never throws.** A WhatsApp failure cannot break lead ingestion or a purchase.
 - **Fails visibly.** When unconfigured in production, it writes a `FAILED` row to `IntegrationLog` so the gap shows at `/admin/integrations/logs` — rather than silently doing nothing, which is what made the 2FA email bug so hard to find.
-- **Provider-swappable.** To move to AiSensy / Interakt / Twilio, rewrite `postToProvider()` in `client.ts`. Nothing else changes.
+- **Provider-swappable.** To move to Meta Cloud API / AiSensy / Interakt / Twilio, rewrite `postToProvider()` in `lib/whatsapp/client.ts`. Nothing else changes.
+
+Unlike Meta's Cloud API, open-wa sends **plain text** — there's no provider-side template registration or approval. Whatever an admin saves at `/admin/messaging` is exactly what sends, immediately.
 
 ---
 
-## Setup — Meta WhatsApp Cloud API
+## Setup — self-hosted open-wa service
 
-### 1. Prerequisites
+### 1. Pick a number
 
-- A Meta Business account
-- A phone number **not** currently registered to a personal WhatsApp account
-- Business verification (Meta requires this before you can message the general public — allow a few days)
+Get a WhatsApp-capable number that:
+- is **not** your personal number,
+- has **WhatsApp Business** installed and active,
+- you're comfortable losing if it gets banned.
 
-### 2. Create the app
-
-1. Go to [developers.facebook.com](https://developers.facebook.com/) → **My Apps** → **Create App**
-2. Type: **Business**
-3. Add the **WhatsApp** product
-4. Under WhatsApp → **API Setup**, note:
-   - **Phone number ID** → this is `WHATSAPP_PHONE_NUMBER_ID`
-   - **Temporary access token** (24 h, for testing only)
-
-### 3. Get a permanent token
-
-The temporary token expires daily — useless in production.
-
-1. Business Settings → **System Users** → Add
-2. Name it e.g. `voyana-whatsapp`, role **Admin**
-3. **Generate New Token** → select your app → grant `whatsapp_business_messaging` and `whatsapp_business_management`
-4. Copy it → this is `WHATSAPP_ACCESS_TOKEN`
-
-Store it like every other secret — never commit it.
-
-### 4. Register the templates
-
-Business Manager → WhatsApp Manager → **Message Templates** → Create.
-
-Meta must approve these before anything can send. Approval usually takes a few hours, sometimes 1–2 days.
-
-**Template 1 — `lead_alert`** (category: Utility, language: English)
-
-```
-Hi {{1}}, a new {{2}} lead just arrived on Moksh Booking: {{3}}. Quality: {{4}}. Open your dashboard to view and purchase it.
-```
-
-Sample values for Meta's review form: `Rajesh Travels`, `Domestic`, `Goa`, `Good`
-
-**Template 2 — `enquiry_received`** (category: Utility, language: English)
-
-```
-Hi {{1}}, thanks for your enquiry about {{2}} with Moksh Booking. Your reference is {{3}}. Our verified travel partners will contact you shortly with personalised options.
-```
-
-Sample values: `Priya Sharma`, `Kerala`, `LD-2026-000123`
-
-> ⚠️ **The `{{n}}` order must match `lib/whatsapp/templates.ts`.** If you reword a template in Meta, keep the placeholder order identical or parameters land in the wrong slots.
-
-If you register the templates under different names, override with `WHATSAPP_TEMPLATE_LEAD_ALERT` / `WHATSAPP_TEMPLATE_CUSTOMER_ACK` instead of editing code.
-
-### 5. Configure the app
+### 2. Set the shared secret
 
 In `.env.production` on the VPS:
 
 ```
-WHATSAPP_ACCESS_TOKEN=your_permanent_system_user_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_SERVICE_URL=http://whatsapp:4000
+WHATSAPP_SERVICE_SECRET=<generate a long random string>
 ```
 
-Then recreate the container — editing the file alone does nothing to a running container:
+The same file feeds both the `app` and `whatsapp` containers (`docker-compose.yml`'s `env_file:`), so one secret value covers both sides — nothing else to configure.
+
+### 3. Bring the service up and scan the QR
+
+```bash
+docker compose up -d --build whatsapp
+docker compose logs -f whatsapp
+```
+
+An ASCII QR code prints to the log. On the number from step 1: **WhatsApp → Linked Devices → Link a Device**, and scan it.
+
+Once linked, the log shows `client ready — session linked.` and the session is written to the `whatsapp-session` Docker volume — it survives container restarts, so this is normally a **one-time step**. You'll need to re-scan if:
+- the phone is logged out of Linked Devices (manually, or by WhatsApp after ~14 days offline),
+- the `whatsapp-session` volume is deleted,
+- WhatsApp forces a re-auth after flagging the session.
+
+### 4. Recreate the app container
 
 ```bash
 docker compose up -d --force-recreate app
 ```
 
-### 6. Verify
+### 5. Verify
 
 ```bash
-curl -s -X POST "https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+curl -s -X POST http://<vps-host>:4000/send \
+  -H "Authorization: Bearer YOUR_WHATSAPP_SERVICE_SECRET" \
   -H "Content-Type: application/json" \
-  -d '{
-    "messaging_product": "whatsapp",
-    "to": "919876543210",
-    "type": "template",
-    "template": {
-      "name": "lead_alert",
-      "language": { "code": "en" },
-      "components": [{
-        "type": "body",
-        "parameters": [
-          {"type":"text","text":"Test Agent"},
-          {"type":"text","text":"Domestic"},
-          {"type":"text","text":"Goa"},
-          {"type":"text","text":"Good"}
-        ]
-      }]
-    }
-  }'
+  -d '{"to":"919876543210","text":"Test message from Voyana"}'
 ```
+
+(Run this `curl` **on the VPS**, inside the compose network — port 4000 is deliberately not published to the host, so it won't resolve from your laptop.)
 
 | Response | Meaning |
 |---|---|
-| `{"messages":[{"id":"wamid..."}]}` | Working |
-| `190` / `OAuthException` | Token invalid or expired — you're probably still using the 24 h temporary one |
-| `132001` | Template doesn't exist or isn't approved yet |
-| `132000` | Parameter count doesn't match the registered template |
-| `131030` | Recipient not in your allow-list — during development you must add test numbers in API Setup |
+| `{"ok":true,"id":"..."}` | Working — check the recipient's WhatsApp |
+| `{"ok":false,"error":"unauthorized"}` | Secret mismatch between `app` and `whatsapp` env |
+| `{"ok":false,"error":"whatsapp session not ready"}` | Not linked yet — check `docker compose logs whatsapp` for a QR or an error |
+| Connection refused | `whatsapp` container isn't running — `docker compose ps` |
 
 ---
 
@@ -140,7 +116,7 @@ curl -s -X POST "https://graph.facebook.com/v21.0/YOUR_PHONE_NUMBER_ID/messages"
 
 ### A — Agent lead alerts
 
-Opt-in per agent at **`/agent/preferences` → Lead alerts → WhatsApp**. Defaults to **off** — messaging someone without consent is intrusive and each conversation is billable.
+Opt-in per agent at **`/agent/preferences` → Lead alerts → WhatsApp**. Defaults to **off** — messaging someone without consent is intrusive.
 
 Sends to `Agent.contactNo`, falling back to `Agent.phone`. Fires from `runLeadAlerts()` alongside the existing email and in-app channels, all in parallel via `Promise.allSettled`.
 
@@ -152,7 +128,7 @@ Skips silently if the phone number can't be normalised.
 
 ### C — Agent → customer intro
 
-On `/agent/leads/[id]` after purchase. Builds a `wa.me` link with a pre-composed message including the customer's name, destination, travel date and traveller count. The agent reviews and presses send themselves.
+On `/agent/leads/[id]` after purchase. Builds a `wa.me` link with a pre-composed message including the customer's name, destination, travel date and traveller count. The agent reviews and presses send themselves — via their own WhatsApp, not the service.
 
 Button is **hidden entirely** if the stored phone can't be normalised — better than a link that opens WhatsApp on a broken number.
 
@@ -177,30 +153,22 @@ Covered by 15 unit tests in `tests/whatsapp-phone.test.ts`. Run with `npm run te
 
 ---
 
-## Costs
+## Switching back to an official provider
 
-Meta bills per 24-hour *conversation*, not per message.
+If the number gets banned, or you'd rather have Meta's official support and compliance guarantees, move to Meta's WhatsApp Cloud API (or a reseller like AiSensy/Interakt/Wati that wraps it):
 
-- **1,000 free service conversations/month**
-- Utility conversations in India: roughly ₹0.12–0.35 each beyond the free tier
-- Feature C costs **nothing** — it's not an API message
+1. Rewrite `postToProvider()` in `lib/whatsapp/client.ts` — it's the one function that knows how to reach open-wa; swap it for the provider's HTTP call.
+2. Meta requires pre-approved templates for business-initiated messages — you'll need to re-register wording for `whatsapp.lead_alert` and `whatsapp.customer_ack` (the current bodies at `/admin/messaging` are a reasonable starting point) and flip `sendsVerbatim: false` for those two keys back on in `lib/messaging/defaults.ts` so the admin UI shows the approval warning again.
+3. Retire the `whatsapp` container and the `whatsapp-session` volume.
 
-At 500 leads/month with alerts to 2 agents each, you're looking at roughly ₹200–400/month. Check Meta's current pricing page; rates change.
-
----
-
-## Switching providers
-
-If Meta's onboarding proves too slow, Indian resellers (AiSensy, Interakt, Wati) wrap the same API with easier setup and handle template submission for you — typically ₹999–2,500/month.
-
-To switch, rewrite `postToProvider()` in `lib/whatsapp/client.ts`. It's about 40 lines and the only place the Meta request shape appears. Every call site — alerts, ingest — stays untouched.
+Every call site — alerts, ingest — stays untouched either way.
 
 ---
 
 ## Troubleshooting
 
 **Nothing sends, no errors anywhere**
-Check `/admin/integrations/logs` filtered to `whatsapp`. A `SKIPPED — WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID not set` row means the env vars aren't reaching the container:
+Check `/admin/integrations/logs` filtered to `whatsapp`. A `SKIPPED — WHATSAPP_SERVICE_URL / WHATSAPP_SERVICE_SECRET not set` row means the env vars aren't reaching the `app` container:
 
 ```bash
 docker compose exec app printenv | grep WHATSAPP
@@ -212,11 +180,25 @@ If they're missing after you edited `.env.production`, you didn't recreate the c
 docker compose up -d --force-recreate app
 ```
 
-**`132001 template not found`**
-The template isn't approved yet, or the name/language doesn't match. Check WhatsApp Manager, then confirm `WHATSAPP_TEMPLATE_LANG` matches the language you registered (`en` vs `en_US` are different templates to Meta).
+**`whatsapp session not ready`**
+The service hasn't linked yet, or the session dropped. Check the log for a QR code or an error:
+
+```bash
+docker compose logs -f whatsapp
+```
+
+**`unauthorized` from the service**
+`WHATSAPP_SERVICE_SECRET` doesn't match between the `app` and `whatsapp` containers — both read it from the same `.env.production`, so this usually means one container is stale. Recreate both:
+
+```bash
+docker compose up -d --force-recreate app whatsapp
+```
 
 **Agent isn't receiving alerts**
 1. Is `alertWhatsapp` enabled on their preferences page?
 2. Does their profile have a valid `contactNo` or `phone`?
 3. Do their alert filters (category / destination / quality / budget) actually match the lead?
 4. Is their account `APPROVED` — suspended and rejected agents are skipped.
+
+**The connected phone got logged out / number banned**
+Re-link with a fresh (or different) number: `docker compose logs -f whatsapp` for the new QR after restarting the service. If the number is genuinely banned, see [Switching back to an official provider](#switching-back-to-an-official-provider).

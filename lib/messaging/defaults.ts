@@ -27,9 +27,7 @@ export type TemplateDefault = {
   language: string;
   /** See the MessageTemplate model docs — true = body is sent as-is. */
   sendsVerbatim: boolean;
-  /** Whitelisted `{{placeholder}}` names, in the order Meta expects them
-   *  for provider templates ({{1}}, {{2}}, …). Order matters for
-   *  sendsVerbatim=false rows; it's cosmetic for verbatim ones. */
+  /** Whitelisted `{{placeholder}}` names offered/validated in the admin editor. */
   placeholders: { name: string; example: string; description: string }[];
 };
 
@@ -67,18 +65,18 @@ export const TEMPLATE_DEFAULTS: TemplateDefault[] = [
     channel: "WHATSAPP",
     label: "Agent lead alert",
     description:
-      "Sent to agents who enabled WhatsApp alerts when a matching lead arrives. This is a business-initiated message, so the wording below MUST match the template approved in Meta Business Manager — editing here updates our record and the copy to paste into Meta, but does not change what sends until Meta approves it.",
-    sendsVerbatim: false,
-    providerTemplateName: "lead_alert",
+      "Sent to agents who enabled WhatsApp alerts when a matching lead arrives. Sent immediately — no approval step required. Edits go live the moment you save.",
+    sendsVerbatim: true,
+    providerTemplateName: null,
     language: "en",
     body:
       "Hi {{agentName}}, a new {{tripCategory}} lead just arrived on {{brandName}}: {{destination}}. Quality: {{quality}}. Open your dashboard to view and purchase it.",
     placeholders: [
-      { name: "agentName", example: "Rajesh Travels", description: "Agent's name — Meta {{1}}" },
-      { name: "tripCategory", example: "Domestic", description: "Lead category — Meta {{2}}" },
-      { name: "destination", example: "Goa", description: "Destination — Meta {{3}}" },
-      { name: "quality", example: "Good", description: "Lead quality — Meta {{4}}" },
-      { name: "brandName", example: "Moksh Booking", description: "Static in the Meta template" },
+      { name: "agentName", example: "Rajesh Travels", description: "Agent's name" },
+      { name: "tripCategory", example: "Domestic", description: "Lead category" },
+      { name: "destination", example: "Goa", description: "Destination" },
+      { name: "quality", example: "Good", description: "Lead quality" },
+      { name: "brandName", example: "Moksh Booking", description: "Platform brand name" },
     ],
   },
   {
@@ -86,17 +84,17 @@ export const TEMPLATE_DEFAULTS: TemplateDefault[] = [
     channel: "WHATSAPP",
     label: "Customer enquiry acknowledgement",
     description:
-      "Sent to a customer right after they submit an enquiry, on every channel (website form, Google/Meta lead ads, partner API). Business-initiated, so the same Meta approval rule applies as the lead alert above.",
-    sendsVerbatim: false,
-    providerTemplateName: "enquiry_received",
+      "Sent to a customer right after they submit an enquiry, on every channel (website form, Google/Meta lead ads, partner API). Sent immediately — no approval step required. Edits go live the moment you save.",
+    sendsVerbatim: true,
+    providerTemplateName: null,
     language: "en",
     body:
       "Hi {{customerName}}, thanks for your enquiry about {{destination}} with {{brandName}}. Your reference is {{leadCode}}. Our verified travel partners will contact you shortly with personalised options.",
     placeholders: [
-      { name: "customerName", example: "Priya Sharma", description: "Customer's name — Meta {{1}}" },
-      { name: "destination", example: "Kerala", description: "Destination — Meta {{2}}" },
-      { name: "leadCode", example: "LD-2026-000123", description: "Reference code — Meta {{3}}" },
-      { name: "brandName", example: "Moksh Booking", description: "Static in the Meta template" },
+      { name: "customerName", example: "Priya Sharma", description: "Customer's name" },
+      { name: "destination", example: "Kerala", description: "Destination" },
+      { name: "leadCode", example: "LD-2026-000123", description: "Reference code" },
+      { name: "brandName", example: "Moksh Booking", description: "Platform brand name" },
     ],
   },
 ];

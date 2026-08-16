@@ -9,7 +9,7 @@ import { sendEmail } from "../email/mailer";
 import { customerLeadReceived, adminNewLead } from "../email/templates";
 import { runLeadAlerts } from "./alerts";
 import { runAutoBuyForLead } from "./autobuy";
-import { sendWhatsAppTemplate } from "../whatsapp/client";
+import { sendWhatsAppMessage } from "../whatsapp/client";
 import { customerEnquiryAckTemplate } from "../whatsapp/templates";
 
 export type IngestAttribution = {
@@ -235,7 +235,8 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
       customerName: input.customerName,
       destination: input.destinationText,
       leadCode: created.code,
-    }).then((tpl) => sendWhatsAppTemplate(phone, tpl, "customer_ack", { leadId: created!.id })),
+      brandName: settings.brandName,
+    }).then((text) => sendWhatsAppMessage(phone, text, "customer_ack", { leadId: created!.id })),
   );
   if (adminEmail) {
     const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });

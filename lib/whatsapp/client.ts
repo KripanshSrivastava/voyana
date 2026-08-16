@@ -3,53 +3,43 @@ import { logIntegration } from "../integrations/log";
 import { toWhatsAppNumber } from "./phone";
 
 /**
- * Outbound WhatsApp messaging via the **Meta WhatsApp Cloud API**.
+ * Outbound WhatsApp messaging via a self-hosted **open-wa** service
+ * (`whatsapp-service/`) — an UNOFFICIAL WhatsApp Web automation client, not
+ * Meta's Cloud API. It drives a real, persistently logged-in WhatsApp
+ * session, so this file talks to it over the private Docker network rather
+ * than an HTTPS API. See docs/WHATSAPP.md for the setup and the tradeoffs
+ * (ban risk, no official support) that come with this approach.
  *
  * Design mirrors lib/email/mailer.ts on purpose:
- *  - Provider details live behind one function, so switching to AiSensy /
- *    Interakt / Twilio means rewriting `postToProvider` and nothing else.
+ *  - Provider details live behind one function, so switching to Meta Cloud
+ *    API (or a reseller) means rewriting `postToProvider` and nothing else.
  *  - NEVER throws. A failed message must not break lead ingestion or a
  *    purchase — WhatsApp is an enhancement, not a critical path.
  *  - Silent no-ops are logged to IntegrationLog in production so a missing
- *    token shows up at /admin/integrations/logs instead of vanishing. This
- *    is the exact failure mode that made the 2FA email bug hard to diagnose.
+ *    config shows up at /admin/integrations/logs instead of vanishing.
  *
- * IMPORTANT — WhatsApp policy:
- * Business-INITIATED messages (our lead alerts and customer auto-replies)
- * must use a template that Meta has pre-approved. You cannot send arbitrary
- * text. Free-form replies are only allowed inside a 24-hour customer service
- * window opened by the customer messaging you first. See docs/WHATSAPP.md
- * for the template bodies to register.
+ * Unlike Meta's API, open-wa sends plain text — there's no provider-side
+ * template approval, so callers just pass the fully-rendered message.
  */
-
-const GRAPH_VERSION = "v21.0";
-
-export type WhatsAppTemplate = {
-  /** Template name exactly as registered in Meta Business Manager. */
-  name: string;
-  /** BCP-47ish language code registered with the template, e.g. "en" or "en_US". */
-  language: string;
-  /** Ordered body parameters substituting {{1}}, {{2}}, … in the template. */
-  bodyParams: string[];
-};
 
 export type WhatsAppResult = { ok: boolean; skipped?: boolean; id?: string };
 
 export function whatsappConfigured(): boolean {
-  return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID);
+  return Boolean(process.env.WHATSAPP_SERVICE_URL && process.env.WHATSAPP_SERVICE_SECRET);
 }
 
 /**
- * Send a pre-approved template message.
+ * Send a plain-text WhatsApp message.
  *
  * @param to    Raw phone string from the DB; normalised internally. When it
  *              can't be normalised we skip rather than guess.
+ * @param text  Fully-rendered message body — see lib/whatsapp/templates.ts.
  * @param event Short label recorded on IntegrationLog rows for triage,
  *              e.g. "lead_alert" or "customer_ack".
  */
-export async function sendWhatsAppTemplate(
+export async function sendWhatsAppMessage(
   to: string | null | undefined,
-  template: WhatsAppTemplate,
+  text: string,
   event: string,
   opts?: { leadId?: string | null },
 ): Promise<WhatsAppResult> {
@@ -60,12 +50,12 @@ export async function sendWhatsAppTemplate(
     return { ok: false, skipped: true };
   }
 
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const serviceUrl = process.env.WHATSAPP_SERVICE_URL;
+  const secret = process.env.WHATSAPP_SERVICE_SECRET;
 
-  if (!token || !phoneNumberId) {
+  if (!serviceUrl || !secret) {
     if (process.env.NODE_ENV !== "production") {
-      console.info(`[whatsapp:dev] ${event} -> ${number} template=${template.name}`);
+      console.info(`[whatsapp:dev] ${event} -> ${number}: ${text}`);
       return { ok: true, skipped: true };
     }
     await logIntegration({
@@ -73,53 +63,38 @@ export async function sendWhatsAppTemplate(
       event,
       status: "FAILED",
       leadId: opts?.leadId ?? null,
-      message: `SKIPPED — WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID not set (template=${template.name})`,
+      message: "SKIPPED — WHATSAPP_SERVICE_URL / WHATSAPP_SERVICE_SECRET not set",
     });
     return { ok: false, skipped: true };
   }
 
-  return postToProvider({ number, template, event, token, phoneNumberId, leadId: opts?.leadId ?? null });
+  return postToProvider({ number, text, event, serviceUrl, secret, leadId: opts?.leadId ?? null });
 }
 
 /**
  * The only provider-specific function in this module. Swap the body of this
- * to move off Meta Cloud API; every call site above stays untouched.
+ * to move to Meta Cloud API or a reseller; every call site above stays
+ * untouched.
  */
 async function postToProvider(args: {
   number: string;
-  template: WhatsAppTemplate;
+  text: string;
   event: string;
-  token: string;
-  phoneNumberId: string;
+  serviceUrl: string;
+  secret: string;
   leadId: string | null;
 }): Promise<WhatsAppResult> {
-  const { number, template, event, token, phoneNumberId, leadId } = args;
-  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`;
+  const { number, text, event, serviceUrl, secret, leadId } = args;
+  const url = `${serviceUrl.replace(/\/$/, "")}/send`;
 
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${secret}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: number,
-        type: "template",
-        template: {
-          name: template.name,
-          language: { code: template.language },
-          components: template.bodyParams.length
-            ? [
-                {
-                  type: "body",
-                  parameters: template.bodyParams.map((text) => ({ type: "text", text })),
-                },
-              ]
-            : [],
-        },
-      }),
+      body: JSON.stringify({ to: number, text }),
     });
 
     if (!res.ok) {
@@ -129,20 +104,20 @@ async function postToProvider(args: {
         event,
         status: "FAILED",
         leadId,
-        message: `${res.status} ${detail} (template=${template.name})`,
+        message: `${res.status} ${detail}`,
       });
       return { ok: false };
     }
 
-    const json = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
-    return { ok: true, id: json?.messages?.[0]?.id };
+    const json = (await res.json().catch(() => null)) as { ok?: boolean; id?: string } | null;
+    return { ok: true, id: json?.id };
   } catch (e) {
     await logIntegration({
       integration: "whatsapp",
       event,
       status: "FAILED",
       leadId,
-      message: `${String(e)} (template=${template.name})`,
+      message: String(e),
     });
     return { ok: false };
   }

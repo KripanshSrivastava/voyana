@@ -4,8 +4,9 @@ import { leadMatches, alertCriteria } from "./matching";
 import { notifyMany, type NotifyEntry } from "../notify";
 import { sendEmail } from "../email/mailer";
 import { agentLeadAlert } from "../email/templates";
-import { sendWhatsAppTemplate } from "../whatsapp/client";
+import { sendWhatsAppMessage } from "../whatsapp/client";
 import { agentLeadAlertTemplate } from "../whatsapp/templates";
+import { getSiteSettings } from "../settings";
 
 function appUrl(): string {
   return process.env.APP_URL || "http://localhost:3100";
@@ -27,7 +28,10 @@ function appUrl(): string {
  */
 export async function runLeadAlerts(leadId: string): Promise<void> {
   try {
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const [lead, settings] = await Promise.all([
+      prisma.lead.findUnique({ where: { id: leadId } }),
+      getSiteSettings(),
+    ]);
     if (!lead) return;
 
     const prefs = await prisma.agentPreference.findMany({
@@ -75,7 +79,8 @@ export async function runLeadAlerts(leadId: string): Promise<void> {
             tripCategory: lead.tripCategory,
             destination: lead.destinationText,
             quality: lead.quality,
-          }).then((tpl) => sendWhatsAppTemplate(phone, tpl, "lead_alert", { leadId })),
+            brandName: settings.brandName,
+          }).then((text) => sendWhatsAppMessage(phone, text, "lead_alert", { leadId })),
         );
       }
     }

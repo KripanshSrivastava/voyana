@@ -54,14 +54,15 @@ export const getMessageTemplate = cache(async (key: TemplateKey): Promise<Resolv
     if (!row) return fromDefault(def);
     return {
       key,
-      // Label/description are product copy, not admin copy — always from code
-      // so wording improvements ship without a data migration.
+      // Label/description/sendsVerbatim are product/structural, not admin
+      // copy — always from code so provider changes (e.g. this one) don't
+      // need a data migration for templates seeded under the old provider.
       label: def.label,
       description: def.description,
       body: row.body,
       providerTemplateName: row.providerTemplateName,
       language: row.language,
-      sendsVerbatim: row.sendsVerbatim,
+      sendsVerbatim: def.sendsVerbatim,
       isFallback: false,
       updatedAt: row.updatedAt,
     };
@@ -111,7 +112,7 @@ export async function listMessageTemplates(): Promise<ResolvedTemplate[]> {
         body: row.body,
         providerTemplateName: row.providerTemplateName,
         language: row.language,
-        sendsVerbatim: row.sendsVerbatim,
+        sendsVerbatim: def.sendsVerbatim,
         isFallback: false,
         updatedAt: row.updatedAt,
       };

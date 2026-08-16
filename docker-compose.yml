@@ -2,9 +2,12 @@
 #  Voyana / Moksh Booking — production Docker Compose (Hostinger VPS)
 #
 #  What this brings up:
-#    - `app`     the Next.js app in the multi-stage Docker image.
-#    - `traefik` an ingress reverse proxy that terminates HTTPS with a real
-#                Let's Encrypt certificate and forwards to the app.
+#    - `app`      the Next.js app in the multi-stage Docker image.
+#    - `whatsapp` internal-only open-wa sender (unofficial WhatsApp Web
+#                 automation). Not reachable from outside this compose
+#                 network — see docs/WHATSAPP.md.
+#    - `traefik`  an ingress reverse proxy that terminates HTTPS with a real
+#                 Let's Encrypt certificate and forwards to the app.
 #
 #  What this does NOT bring up (deliberately):
 #    - Postgres  — you already use Supabase Postgres. Keep it.
@@ -64,6 +67,28 @@ services:
       - "traefik.http.middlewares.voyana-sec.headers.referrerPolicy=strict-origin-when-cross-origin"
       - "traefik.http.routers.voyana.middlewares=voyana-www-redirect,voyana-sec"
 
+  whatsapp:
+    build:
+      context: ./whatsapp-service
+    image: voyana-whatsapp:latest
+    container_name: voyana-whatsapp
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      PORT: 4000
+    expose:
+      # Internal only — deliberately NOT labelled for Traefik and NOT
+      # published to the host. Only `app` reaches this, via the compose
+      # network at http://whatsapp:4000. See docs/WHATSAPP.md.
+      - "4000"
+    volumes:
+      # Persists the linked WhatsApp Web session (open-wa). Deleting this
+      # forces a fresh QR-code re-scan on next start.
+      - whatsapp-session:/app/session
+    networks:
+      - web
+
   traefik:
     # Floating v3 tag so Traefik tracks Docker Engine API changes. Pinning to
     # v3.1 broke against Docker Engine 29: Traefik's API-version negotiation
@@ -111,3 +136,8 @@ services:
 networks:
   web:
     driver: bridge
+
+volumes:
+  # WhatsApp Web session (open-wa). Don't delete casually — losing it means
+  # re-scanning the QR code from the connected phone's Linked Devices.
+  whatsapp-session:
