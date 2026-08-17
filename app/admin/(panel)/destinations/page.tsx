@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { ContentRowActions } from "@/components/admin/ContentRowActions";
 import { Badge, EmptyState, ButtonLink } from "@/components/ui";
@@ -6,6 +9,8 @@ import { formatDate } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 export default async function AdminDestinationsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "content")) return <AccessRestricted area="Destinations" />;
   const destinations = await prisma.destination.findMany({
     orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
     include: { _count: { select: { packages: true } } },

@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { EmptyState } from "@/components/ui";
 import { formatINR } from "@/lib/utils";
 
 export default async function WalletsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "finance")) return <AccessRestricted area="Wallets" />;
   const wallets = await prisma.agentWallet.findMany({
     include: { agent: { include: { user: true, _count: { select: { assignments: true } } } } },
     orderBy: { balance: "desc" },

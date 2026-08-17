@@ -12,41 +12,50 @@ import {
 import { cn } from "@/lib/utils";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
 import { AuthSync } from "@/components/auth/AuthSync";
+import { adminCanAccess, type AdminArea } from "@/lib/rbac-areas";
 
-const GROUPS: { label: string; items: { href: string; label: string; icon: React.ElementType }[] }[] = [
+// `area: null` means every admin sub-role can see it (e.g. the dashboard).
+// Everything else is checked against the same ROLE_AREAS map the server
+// uses to gate the actual page — see lib/rbac-areas.ts. Two pages (Pricing,
+// Credit Orders) are narrower than a single area (Main Admin + Finance
+// only) so they carry an explicit role allowlist instead.
+const GROUPS: {
+  label: string;
+  items: { href: string; label: string; icon: React.ElementType; area: AdminArea | null; roles?: string[] }[];
+}[] = [
   {
     label: "Operations",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/leads", label: "Leads", icon: Inbox },
-      { href: "/admin/agents", label: "Agents", icon: Users },
-      { href: "/admin/wallets", label: "Wallets", icon: Wallet },
-      { href: "/admin/pricing", label: "Pricing", icon: Wallet },
-      { href: "/admin/credit-orders", label: "Credit Orders", icon: Wallet },
-      { href: "/admin/revenue", label: "Revenue", icon: TrendingUp },
-      { href: "/admin/campaigns", label: "Marketing", icon: Megaphone },
-      { href: "/admin/spam-reports", label: "Spam Reports", icon: LifeBuoy },
-      { href: "/admin/vendor-ads", label: "Vendor Ads", icon: MegaphoneIcon },
-      { href: "/admin/support", label: "Support", icon: Headset },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, area: null },
+      { href: "/admin/leads", label: "Leads", icon: Inbox, area: "leads" },
+      { href: "/admin/agents", label: "Agents", icon: Users, area: "vendors" },
+      { href: "/admin/wallets", label: "Wallets", icon: Wallet, area: "finance" },
+      { href: "/admin/pricing", label: "Pricing", icon: Wallet, area: "settings", roles: ["SUPER_ADMIN"] },
+      { href: "/admin/credit-orders", label: "Credit Orders", icon: Wallet, area: "finance", roles: ["SUPER_ADMIN", "FINANCE_ADMIN"] },
+      { href: "/admin/revenue", label: "Revenue", icon: TrendingUp, area: "finance" },
+      { href: "/admin/campaigns", label: "Marketing", icon: Megaphone, area: "marketing" },
+      { href: "/admin/spam-reports", label: "Spam Reports", icon: LifeBuoy, area: "support" },
+      { href: "/admin/vendor-ads", label: "Vendor Ads", icon: MegaphoneIcon, area: "marketing" },
+      { href: "/admin/support", label: "Support", icon: Headset, area: "support" },
     ],
   },
   {
     label: "Content (CMS)",
     items: [
-      { href: "/admin/destinations", label: "Destinations", icon: MapPin },
-      { href: "/admin/packages", label: "Packages", icon: Package },
-      { href: "/admin/tours", label: "Tours", icon: Compass },
-      { href: "/admin/media", label: "Media", icon: ImageIcon },
-      { href: "/admin/moderation", label: "Content Moderation", icon: ClipboardCheck },
+      { href: "/admin/destinations", label: "Destinations", icon: MapPin, area: "content" },
+      { href: "/admin/packages", label: "Packages", icon: Package, area: "content" },
+      { href: "/admin/tours", label: "Tours", icon: Compass, area: "content" },
+      { href: "/admin/media", label: "Media", icon: ImageIcon, area: "content" },
+      { href: "/admin/moderation", label: "Content Moderation", icon: ClipboardCheck, area: "content" },
     ],
   },
   {
     label: "Platform",
     items: [
-      { href: "/admin/messaging", label: "Messaging", icon: MessageSquare },
-      { href: "/admin/integrations", label: "Integrations", icon: Plug },
-      { href: "/admin/audit", label: "Audit log", icon: ScrollText },
-      { href: "/admin/settings", label: "Settings", icon: Settings },
+      { href: "/admin/messaging", label: "Messaging", icon: MessageSquare, area: "settings" },
+      { href: "/admin/integrations", label: "Integrations", icon: Plug, area: "settings" },
+      { href: "/admin/audit", label: "Audit log", icon: ScrollText, area: "settings" },
+      { href: "/admin/settings", label: "Settings", icon: Settings, area: "settings" },
     ],
   },
 ];
@@ -74,7 +83,15 @@ export function AdminShell({ name, adminRole, brandName, logoUrl, children }: { 
   // An ADMIN with no adminRole is treated as SUPER_ADMIN (matches lib/rbac.ts).
   // Server-side gates still enforce this — hiding the nav item is UX polish, not security.
   const isSuperAdmin = !adminRole || adminRole === "SUPER_ADMIN";
-  const groups = isSuperAdmin ? [...GROUPS, SUPER_ADMIN_GROUP] : GROUPS;
+  const visibleGroups = GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((it) => {
+      if (it.roles && !isSuperAdmin && !it.roles.includes(adminRole ?? "")) return false;
+      if (it.area === null) return true;
+      return adminCanAccess(adminRole, it.area);
+    }),
+  })).filter((g) => g.items.length > 0);
+  const groups = isSuperAdmin ? [...visibleGroups, SUPER_ADMIN_GROUP] : visibleGroups;
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">

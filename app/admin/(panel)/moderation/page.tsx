@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { ModerationActions } from "@/components/admin/ModerationActions";
@@ -13,6 +16,8 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default async function ModerationPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const session = await requireAdmin();
+  if (!canAccess(session, "content")) return <AccessRestricted area="Content Moderation" />;
   const { status } = await searchParams;
   const filterStatus = status && status !== "ALL" ? status : "PENDING_REVIEW";
   const where = filterStatus === "ALL" ? { submittedByAgentId: { not: null } } : { submittedByAgentId: { not: null }, moderationStatus: filterStatus };

@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { Badge, EmptyState } from "@/components/ui";
 import { formatDateTime, parseJson } from "@/lib/utils";
 
 export default async function AuditPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "settings")) return <AccessRestricted area="Audit log" />;
   const logs = await prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
 
   return (

@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader, AgentStatusBadge } from "@/components/admin/ui";
 import { EmptyState } from "@/components/ui";
 import { formatINR, formatDate } from "@/lib/utils";
 
 export default async function AgentsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "vendors")) return <AccessRestricted area="Agents" />;
   const agents = await prisma.agent.findMany({
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     include: {

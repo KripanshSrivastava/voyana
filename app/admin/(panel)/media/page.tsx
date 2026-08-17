@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { MediaLibrary } from "@/components/admin/MediaLibrary";
 
 export default async function MediaPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "content")) return <AccessRestricted area="Media" />;
   const media = await prisma.media.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
   return (
     <div>

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Globe, Share2, BarChart3, Mail, CreditCard, Webhook, ScrollText, CheckCircle2, XCircle } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { getSiteSettings } from "@/lib/settings";
 import { PageHeader } from "@/components/admin/ui";
 import { Card, Badge } from "@/components/ui";
@@ -8,6 +11,8 @@ import { Card, Badge } from "@/components/ui";
 const APP_URL = process.env.APP_URL || "http://localhost:3100";
 
 export default async function IntegrationsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "settings")) return <AccessRestricted area="Integrations" />;
   const settings = await getSiteSettings();
   const [recent, counts] = await Promise.all([
     prisma.integrationLog.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),

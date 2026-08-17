@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader, StatusBadge, QualityBadge } from "@/components/admin/ui";
 import { LeadFilters } from "@/components/admin/LeadFilters";
 import { Badge, EmptyState, ButtonLink } from "@/components/ui";
@@ -14,6 +17,8 @@ export default async function AdminLeadsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const session = await requireAdmin();
+  if (!canAccess(session, "leads")) return <AccessRestricted area="Leads" />;
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 

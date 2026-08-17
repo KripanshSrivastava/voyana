@@ -1,27 +1,19 @@
 import "server-only";
 import type { SessionUser } from "./auth";
+import { adminCanAccess, type AdminArea } from "./rbac-areas";
+
+export type { AdminArea };
 
 /**
  * Admin areas an admin sub-role may access. SUPER_ADMIN implicitly gets all.
  * An ADMIN with no adminRole set behaves as SUPER_ADMIN (backward-compatible
  * with single-admin setups). Enforced server-side, not just by hiding UI.
+ * Role→area mapping lives in rbac-areas.ts so AdminShell (a client
+ * component) can filter nav items with the same rule.
  */
-export type AdminArea = "leads" | "finance" | "support" | "marketing" | "content" | "vendors" | "settings" | "flags";
-
-const ROLE_AREAS: Record<string, AdminArea[]> = {
-  SUPER_ADMIN: ["leads", "finance", "support", "marketing", "content", "vendors", "settings", "flags"],
-  LEAD_MANAGER: ["leads", "vendors"],
-  SALES_MANAGER: ["leads", "vendors"],
-  FINANCE_ADMIN: ["finance", "vendors"],
-  SUPPORT_ADMIN: ["support", "vendors"],
-  MARKETING_ADMIN: ["marketing", "leads"],
-  CONTENT_ADMIN: ["content"],
-};
-
 export function canAccess(session: SessionUser, area: AdminArea): boolean {
   if (session.role !== "ADMIN") return false;
-  if (!session.adminRole || session.adminRole === "SUPER_ADMIN") return true;
-  return (ROLE_AREAS[session.adminRole] ?? []).includes(area);
+  return adminCanAccess(session.adminRole ?? null, area);
 }
 
 export class ForbiddenError extends Error {

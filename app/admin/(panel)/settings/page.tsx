@@ -1,10 +1,15 @@
 import { getSiteSettings, type Socials } from "@/lib/settings";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { SettingsForm, type SettingsValue } from "@/components/admin/SettingsForm";
 import { FeatureFlagsCard } from "@/components/admin/FeatureFlagsCard";
 import { parseJson } from "@/lib/utils";
 
 export default async function SettingsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "settings")) return <AccessRestricted area="Settings" />;
   const s = await getSiteSettings();
   const socials = parseJson<Socials>(s.socials, {});
   const flags = {

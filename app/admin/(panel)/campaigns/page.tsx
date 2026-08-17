@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { EmptyState } from "@/components/ui";
 import { formatINR } from "@/lib/utils";
@@ -14,6 +17,8 @@ type Row = {
 };
 
 export default async function CampaignsPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "marketing")) return <AccessRestricted area="Marketing" />;
   const leads = await prisma.lead.findMany({
     include: { payments: { select: { amount: true } }, _count: { select: { assignments: true } } },
   });

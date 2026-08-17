@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/guards";
+import { canAccess } from "@/lib/rbac";
+import { AccessRestricted } from "@/components/admin/AccessRestricted";
 import { PageHeader } from "@/components/admin/ui";
 import { PackageTableView } from "@/components/admin/PackageTableView";
 import { EmptyState, ButtonLink } from "@/components/ui";
 import { Plus } from "lucide-react";
 
 export default async function AdminPackagesPage() {
+  const session = await requireAdmin();
+  if (!canAccess(session, "content")) return <AccessRestricted area="Packages" />;
   const rows = await prisma.tourPackage.findMany({
     where: { kind: "PACKAGE" },
     orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
