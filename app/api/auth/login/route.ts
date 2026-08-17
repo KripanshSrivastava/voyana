@@ -6,6 +6,7 @@ import { signOut } from "@/lib/auth";
 import { issueCode } from "@/lib/auth/verification";
 import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 import { checkLoginLockout, recordLoginFailure, clearLoginFailures } from "@/lib/auth/lockout";
+import { verifyTurnstileToken } from "@/lib/auth/turnstile";
 import type { Role } from "@/lib/constants";
 
 /**
@@ -28,6 +29,16 @@ export const POST = handler(async (req: Request) => {
   const email = data.email.toLowerCase();
   const intendedRole = (body.role as Role | undefined) ?? undefined;
   const ip = ipFromRequest(req);
+
+  // Layer 0 — CAPTCHA, admin login only. Supabase's own captcha protection
+  // is a project-wide GoTrue setting (would also gate agent/customer auth),
+  // so it's verified here instead — scoped strictly to the admin portal.
+  if (intendedRole === "ADMIN") {
+    const captchaToken = typeof body.captchaToken === "string" ? body.captchaToken : "";
+    if (!(await verifyTurnstileToken(captchaToken, ip))) {
+      return fail("Captcha verification failed. Please try again.", 400);
+    }
+  }
 
   // Layer 1 — IP rate limit. Broad, catches spraying.
   const ipLimit = await rateLimit({ key: `login:ip:${ip}`, windowSeconds: 60, max: 15 });

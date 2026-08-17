@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Wallet, TrendingUp, Megaphone, MapPin,
   Package, Compass, Image as ImageIcon, Settings, LogOut, Menu, X, Plane, Inbox,
   Plug, ScrollText, LifeBuoy, Megaphone as MegaphoneIcon, ClipboardCheck, Headset, ShieldCheck,
-  MessageSquare,
+  MessageSquare, KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
@@ -56,6 +56,13 @@ const GROUPS: {
       { href: "/admin/integrations", label: "Integrations", icon: Plug, area: "settings" },
       { href: "/admin/audit", label: "Audit log", icon: ScrollText, area: "settings" },
       { href: "/admin/settings", label: "Settings", icon: Settings, area: "settings" },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      // Personal — every admin manages their own passkeys, so no area gate.
+      { href: "/admin/security", label: "Security", icon: KeyRound, area: null },
     ],
   },
 ];

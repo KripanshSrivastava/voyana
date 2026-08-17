@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plane } from "lucide-react";
+import { Loader2, Plane, KeyRound } from "lucide-react";
 import { Button, Input, Field } from "@/components/ui";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
+import { createClient } from "@/lib/supabase/client";
+import { Turnstile } from "@/components/auth/Turnstile";
 
 function Shell({ title, subtitle, brandName = "Moksh Booking", logoUrl, children }: { title: string; subtitle?: string; brandName?: string; logoUrl?: string | null; children: React.ReactNode }) {
   return (
@@ -64,16 +66,27 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+
+  // Admin-only captcha: render nothing (and require nothing) if the site key
+  // isn't configured, so an admin panel without Turnstile set up still logs
+  // in normally rather than becoming unusable.
+  const captchaRequired = role === "ADMIN" && !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (captchaRequired && !captchaToken) {
+      setError("Please complete the captcha.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password, role, captchaToken }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Login failed");
@@ -85,6 +98,27 @@ export function LoginForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
       setLoading(false);
+    }
+  }
+
+  // Admin-only alternative to password login. Supabase's WebAuthn ceremony
+  // runs entirely client-side and sets the session cookie directly — if the
+  // signed-in account turns out not to be an ADMIN, the /admin panel layout's
+  // requireAdmin() guard bounces to /admin/login?error=wrong-role, the same
+  // safety net that already covers a stale agent session in this browser.
+  async function signInWithPasskey() {
+    setError(null);
+    setPasskeyLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: pkError } = await supabase.auth.signInWithPasskey();
+      if (pkError) throw pkError;
+      broadcastAuthChange();
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Passkey sign-in failed.");
+      setPasskeyLoading(false);
     }
   }
 
@@ -108,17 +142,43 @@ export function LoginForm({
             </Link>
           </div>
         )}
+        {role === "ADMIN" && captchaRequired && (
+          <Turnstile onVerify={setCaptchaToken} />
+        )}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <Button
           type="submit"
           size="lg"
           className="w-full"
-          disabled={loading}
+          disabled={loading || (captchaRequired && !captchaToken)}
           style={{ background: "var(--mb-accent)", color: "#fff" }}
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
         </Button>
       </form>
+      {role === "ADMIN" && (
+        <>
+          <div className="my-4 flex items-center gap-3 text-xs uppercase" style={{ color: "var(--mb-muted)" }}>
+            <div className="h-px flex-1" style={{ background: "var(--mb-line)" }} />
+            or
+            <div className="h-px flex-1" style={{ background: "var(--mb-line)" }} />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            disabled={passkeyLoading}
+            onClick={signInWithPasskey}
+          >
+            {passkeyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+              <>
+                <KeyRound className="h-4 w-4" /> Sign in with a passkey
+              </>
+            )}
+          </Button>
+        </>
+      )}
       {role === "AGENT" && (
         <p className="mt-5 text-center text-sm" style={{ color: "var(--mb-muted)" }}>
           New partner?{" "}
