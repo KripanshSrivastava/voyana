@@ -36,17 +36,44 @@ export function SetPasswordCard() {
     const supabase = createClient();
     let cancelled = false;
 
-    // Supabase-js parses the invite fragment (#access_token=...) on load
-    // and emits INITIAL_SESSION once the client is ready. Listen for it so
-    // we don't race the fragment parse — a plain getUser() sometimes wins
-    // that race and reports "no session" even though one is coming.
+    // Supabase admin.generateLink() (used for the admin invite email) always
+    // returns tokens as a URL fragment (#access_token=...&refresh_token=...),
+    // the older implicit-flow shape — regardless of the project's configured
+    // flow. This client is created with createBrowserClient from @supabase/ssr,
+    // which defaults to PKCE and therefore only auto-detects a `?code=` query
+    // param on load, never `#access_token=`. Left alone, that mismatch means
+    // a perfectly valid invite link never produces a session. So: parse the
+    // fragment ourselves and call setSession() explicitly, then strip it from
+    // the address bar so the tokens don't linger in browser history/referrers.
+    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+    const params = new URLSearchParams(hash);
+    const access_token = params.get("access_token");
+    const refresh_token = params.get("refresh_token");
+
+    if (access_token && refresh_token) {
+      supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
+        if (cancelled) return;
+        window.history.replaceState(null, "", window.location.pathname);
+        if (error) {
+          setSession({ status: "error", message: error.message });
+          return;
+        }
+        const email = data.user?.email;
+        setSession(email ? { status: "ready", email } : { status: "missing" });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // No fragment tokens (link already used, or opened without them) — fall
+    // back to checking for an existing session the normal way.
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
       if (cancelled) return;
       const email = s?.user?.email;
       setSession(email ? { status: "ready", email } : { status: "missing" });
     });
 
-    // Kick off an initial check in case the client is already hydrated.
     supabase.auth.getUser().then(({ data, error }) => {
       if (cancelled) return;
       if (error) {
@@ -54,8 +81,6 @@ export function SetPasswordCard() {
         return;
       }
       const email = data.user?.email;
-      // Don't overwrite a later "ready" from onAuthStateChange with an
-      // early "missing" — only set missing if we're still loading.
       setSession((prev) => {
         if (email) return { status: "ready", email };
         return prev.status === "loading" ? { status: "missing" } : prev;

@@ -8,6 +8,7 @@
     "start": "next start -p 3100",
     "lint": "eslint",
     "seed:test": "tsx prisma/seed.ts",
+    "reset:launch": "dotenv -e .env.production -- tsx prisma/reset-for-launch.ts",
     "postinstall": "prisma generate",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run --config vitest.unit.config.ts",
