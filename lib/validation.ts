@@ -153,16 +153,39 @@ export const vendorDestinationSubmissionSchema = z.object({
   heroImage: z.string().max(1000).optional().or(z.literal("")),
 });
 
+// Same content fields as `packageSchema` below — vendors get full parity with
+// the admin package editor (pricing, gallery, itinerary, inclusions/
+// exclusions, FAQs). Deliberately excludes `slug` (server-generated),
+// `published`/`featured`/`sortOrder`/`noindex` (admin-only, forced server-side
+// so a vendor submission can never publish or feature itself).
 export const vendorPackageSubmissionSchema = z.object({
   kind: z.enum(["PACKAGE", "TOUR"]).default("PACKAGE"),
   title: z.string().trim().min(2, "Title is required").max(200),
   destinationId: z.string().optional().nullable(),
   shortDescription: z.string().max(400).optional().or(z.literal("")),
   longDescription: z.string().max(10000).optional().or(z.literal("")),
+  heroImage: z.string().max(1000).optional().or(z.literal("")),
+  gallery: z.array(z.string()).optional().default([]),
   durationDays: z.coerce.number().int().min(0).optional().nullable(),
   durationNights: z.coerce.number().int().min(0).optional().nullable(),
+  startingPrice: z.coerce.number().int().min(0).optional().nullable(),
+  offerPrice: z.coerce.number().int().min(0).optional().nullable(),
+  priceLabel: z.string().max(120).optional().or(z.literal("")),
+  hotelCategory: z.string().max(120).optional().or(z.literal("")),
+  accommodation: z.string().max(2000).optional().or(z.literal("")),
+  transport: z.string().max(2000).optional().or(z.literal("")),
+  activities: z.array(z.string()).optional().default([]),
   tripType: z.string().max(60).optional().or(z.literal("")),
-  heroImage: z.string().max(1000).optional().or(z.literal("")),
+  difficulty: z.string().max(60).optional().or(z.literal("")),
+  itinerary: z
+    .array(z.object({ day: z.coerce.number().int(), title: z.string(), description: z.string().optional() }))
+    .optional()
+    .default([]),
+  inclusions: z.array(z.string()).optional().default([]),
+  exclusions: z.array(z.string()).optional().default([]),
+  faqs: z.array(z.object({ question: z.string(), answer: z.string() })).optional().default([]),
+  seoTitle: z.string().max(200).optional().or(z.literal("")),
+  seoDescription: z.string().max(400).optional().or(z.literal("")),
 });
 
 // ---- CMS: destinations ----------------------------------------------------

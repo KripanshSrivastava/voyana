@@ -3,8 +3,10 @@ import type { packageSchema } from "../validation";
 
 type PackageInput = z.infer<typeof packageSchema>;
 
-/** Scalar column data for a TourPackage row from validated input. */
-export function packageScalars(d: PackageInput) {
+/** Scalar column data for a TourPackage row from validated input. `slug` is
+ * handled separately by the caller (uniquePackageSlug) — omitted here so
+ * vendor submissions (which never set their own slug) can reuse this too. */
+export function packageScalars(d: Omit<PackageInput, "slug">) {
   const gallery = d.gallery ?? [];
   return {
     kind: d.kind,
@@ -37,8 +39,12 @@ export function packageScalars(d: PackageInput) {
   };
 }
 
-/** Nested create payloads for child relations. */
-export function packageChildren(d: PackageInput) {
+/** Nested create payloads for child relations. Only needs the child-list
+ * fields — accepts vendor submissions too, which don't carry the admin-only
+ * scalar fields (slug/published/featured/sortOrder/noindex). */
+export function packageChildren(
+  d: Pick<PackageInput, "gallery" | "itinerary" | "inclusions" | "exclusions" | "faqs">,
+) {
   const gallery = d.gallery ?? [];
   return {
     images: gallery.map((url, i) => ({ url, isHero: i === 0, sortOrder: i })),

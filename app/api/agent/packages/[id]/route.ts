@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { handler, ok, fail } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { vendorPackageSubmissionSchema } from "@/lib/validation";
+import { packageScalars, packageChildren } from "@/lib/cms/packageWrite";
 import { logAudit } from "@/lib/audit";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -34,22 +35,29 @@ export const PATCH = handler(async (req: Request, ctx: Ctx) => {
   }
 
   const d = vendorPackageSubmissionSchema.parse(body.details ?? body);
+  const children = packageChildren(d);
 
-  await prisma.tourPackage.update({
-    where: { id },
-    data: {
-      kind: d.kind,
-      title: d.title,
-      destinationId: d.destinationId || null,
-      shortDescription: d.shortDescription || null,
-      longDescription: d.longDescription || null,
-      durationDays: d.durationDays ?? null,
-      durationNights: d.durationNights ?? null,
-      tripType: d.tripType || null,
-      heroImage: d.heroImage || null,
-      ...(submitForReview ? { moderationStatus: "PENDING_REVIEW", rejectionReason: null } : {}),
-    },
-  });
+  // Replace children wholesale, same as the admin editor — a vendor edit
+  // resubmits the full content set, not a partial patch.
+  await prisma.$transaction([
+    prisma.packageImage.deleteMany({ where: { packageId: id } }),
+    prisma.packageItinerary.deleteMany({ where: { packageId: id } }),
+    prisma.packageInclusion.deleteMany({ where: { packageId: id } }),
+    prisma.packageExclusion.deleteMany({ where: { packageId: id } }),
+    prisma.packageFAQ.deleteMany({ where: { packageId: id } }),
+    prisma.tourPackage.update({
+      where: { id },
+      data: {
+        ...packageScalars({ ...d, published: false, featured: false, sortOrder: existing.sortOrder, noindex: existing.noindex }),
+        images: { create: children.images },
+        itinerary: { create: children.itinerary },
+        inclusions: { create: children.inclusions },
+        exclusions: { create: children.exclusions },
+        faqs: { create: children.faqs },
+        ...(submitForReview ? { moderationStatus: "PENDING_REVIEW", rejectionReason: null } : {}),
+      },
+    }),
+  ]);
   if (submitForReview) {
     await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "package.submit_for_review", entityType: "cms", entityId: id });
   }

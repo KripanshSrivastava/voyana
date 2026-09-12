@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { getFlags } from "@/lib/flags";
 import { vendorPackageSubmissionSchema } from "@/lib/validation";
 import { uniquePackageSlug } from "@/lib/cms/slug";
+import { packageScalars, packageChildren } from "@/lib/cms/packageWrite";
 import { logAudit } from "@/lib/audit";
 
 /** Vendor's own package/tour submissions (any moderation status). */
@@ -28,20 +29,21 @@ export const POST = handler(async (req: Request) => {
 
   const d = vendorPackageSubmissionSchema.parse(await req.json());
   const slug = await uniquePackageSlug(d.title);
+  // Vendors get the same content fields as the admin editor (pricing,
+  // gallery, itinerary, inclusions/exclusions, FAQs) via the shared
+  // packageScalars/packageChildren helpers — published/featured/sortOrder/
+  // noindex are always forced off/default here, never vendor-controlled.
+  const children = packageChildren(d);
 
   const created = await prisma.tourPackage.create({
     data: {
-      kind: d.kind,
-      title: d.title,
+      ...packageScalars({ ...d, published: false, featured: false, sortOrder: 0, noindex: false }),
       slug,
-      destinationId: d.destinationId || null,
-      shortDescription: d.shortDescription || null,
-      longDescription: d.longDescription || null,
-      durationDays: d.durationDays ?? null,
-      durationNights: d.durationNights ?? null,
-      tripType: d.tripType || null,
-      heroImage: d.heroImage || null,
-      published: false,
+      images: { create: children.images },
+      itinerary: { create: children.itinerary },
+      inclusions: { create: children.inclusions },
+      exclusions: { create: children.exclusions },
+      faqs: { create: children.faqs },
       submittedByAgentId: session.agentId,
       moderationStatus: "DRAFT",
     },

@@ -64,11 +64,19 @@ export function PackageEditor({
   kind,
   destinations,
   initial,
+  vendorMode,
+  onSaved,
 }: {
   id?: string;
   kind: "PACKAGE" | "TOUR";
   destinations: { id: string; name: string }[];
   initial?: PackageFormValue;
+  /** Vendor/agent submission mode: hides publish/feature/sort-order/noindex
+   *  controls (admin-only) and posts to the vendor endpoints instead. The
+   *  submission still goes through admin moderation before it can publish. */
+  vendorMode?: boolean;
+  /** Vendor mode only — called with the saved id after a successful create/edit. */
+  onSaved?: (id: string) => void;
 }) {
   const router = useRouter();
   const noun = kind === "TOUR" ? "tour" : "package";
@@ -82,28 +90,63 @@ export function PackageEditor({
     setBusy(true);
     setError(null);
     try {
-      const payload = {
-        ...f,
-        slug: f.slug || slugify(f.title),
-        destinationId: f.destinationId || null,
-        durationDays: f.durationDays ? Number(f.durationDays) : null,
-        durationNights: f.durationNights ? Number(f.durationNights) : null,
-        startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
-        offerPrice: f.offerPrice ? Number(f.offerPrice) : null,
-        sortOrder: Number(f.sortOrder) || 0,
-        published: publishNow ?? f.published,
-      };
-      const res = await fetch(id ? `/api/admin/packages/${id}` : "/api/admin/packages", {
+      const payload = vendorMode
+        ? {
+            kind: f.kind,
+            title: f.title,
+            destinationId: f.destinationId || null,
+            shortDescription: f.shortDescription,
+            longDescription: f.longDescription,
+            heroImage: f.heroImage,
+            gallery: f.gallery,
+            durationDays: f.durationDays ? Number(f.durationDays) : null,
+            durationNights: f.durationNights ? Number(f.durationNights) : null,
+            startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
+            offerPrice: f.offerPrice ? Number(f.offerPrice) : null,
+            priceLabel: f.priceLabel,
+            hotelCategory: f.hotelCategory,
+            accommodation: f.accommodation,
+            transport: f.transport,
+            activities: f.activities,
+            tripType: f.tripType,
+            difficulty: f.difficulty,
+            itinerary: f.itinerary,
+            inclusions: f.inclusions,
+            exclusions: f.exclusions,
+            faqs: f.faqs,
+            seoTitle: f.seoTitle,
+            seoDescription: f.seoDescription,
+          }
+        : {
+            ...f,
+            slug: f.slug || slugify(f.title),
+            destinationId: f.destinationId || null,
+            durationDays: f.durationDays ? Number(f.durationDays) : null,
+            durationNights: f.durationNights ? Number(f.durationNights) : null,
+            startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
+            offerPrice: f.offerPrice ? Number(f.offerPrice) : null,
+            sortOrder: Number(f.sortOrder) || 0,
+            published: publishNow ?? f.published,
+          };
+      const url = vendorMode
+        ? id ? `/api/agent/packages/${id}` : "/api/agent/packages"
+        : id ? `/api/admin/packages/${id}` : "/api/admin/packages";
+      const res = await fetch(url, {
         method: id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(vendorMode && id ? { details: payload } : payload),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Save failed");
-      router.push(kind === "TOUR" ? "/admin/tours" : "/admin/packages");
+      if (vendorMode) {
+        onSaved?.(id ?? json.data.id);
+      } else {
+        router.push(kind === "TOUR" ? "/admin/tours" : "/admin/packages");
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
       setBusy(false);
     }
   }
@@ -116,9 +159,11 @@ export function PackageEditor({
           <Field label={`${noun[0].toUpperCase() + noun.slice(1)} title`}>
             <Input value={f.title} onChange={(e) => { set("title", e.target.value); if (!slugTouched) set("slug", slugify(e.target.value)); }} />
           </Field>
-          <Field label="Slug" hint={`/${kind === "TOUR" ? "tours" : "packages"}/your-slug`}>
-            <Input value={f.slug} onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
-          </Field>
+          {!vendorMode && (
+            <Field label="Slug" hint={`/${kind === "TOUR" ? "tours" : "packages"}/your-slug`}>
+              <Input value={f.slug} onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
+            </Field>
+          )}
           <Field label="Destination">
             <Select value={f.destinationId} onChange={(e) => set("destinationId", e.target.value)}>
               <option value="">— None —</option>
@@ -131,8 +176,18 @@ export function PackageEditor({
 
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-navy-900">Images</h2>
-          <SingleImage value={f.heroImage} onChange={(v) => set("heroImage", v)} folder="packages" />
-          <GalleryImages value={f.gallery} onChange={(v) => set("gallery", v)} folder="packages" />
+          <SingleImage
+            value={f.heroImage}
+            onChange={(v) => set("heroImage", v)}
+            folder={vendorMode ? "vendor-submissions" : "packages"}
+            endpoint={vendorMode ? "/api/agent/media" : undefined}
+          />
+          <GalleryImages
+            value={f.gallery}
+            onChange={(v) => set("gallery", v)}
+            folder={vendorMode ? "vendor-submissions" : "packages"}
+            endpoint={vendorMode ? "/api/agent/media" : undefined}
+          />
         </Card>
 
         <Card className="p-6 space-y-4">
@@ -159,7 +214,9 @@ export function PackageEditor({
           <h2 className="font-semibold text-navy-900">SEO</h2>
           <Field label="SEO title"><Input value={f.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} /></Field>
           <Field label="SEO description"><Textarea rows={2} value={f.seoDescription} onChange={(e) => set("seoDescription", e.target.value)} /></Field>
-          <Toggle label="No-index (hide from search engines)" checked={f.noindex} onChange={(v) => set("noindex", v)} />
+          {!vendorMode && (
+            <Toggle label="No-index (hide from search engines)" checked={f.noindex} onChange={(v) => set("noindex", v)} />
+          )}
         </Card>
       </div>
 
@@ -175,17 +232,26 @@ export function PackageEditor({
             <Field label="Days"><Input type="number" value={f.durationDays} onChange={(e) => set("durationDays", e.target.value)} /></Field>
             <Field label="Nights"><Input type="number" value={f.durationNights} onChange={(e) => set("durationNights", e.target.value)} /></Field>
           </div>
-          <Field label="Sort order"><Input type="number" value={f.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} /></Field>
-          <div className="space-y-2 border-t border-navy-100 pt-3">
-            <Toggle label="Published (visible on site)" checked={f.published} onChange={(v) => set("published", v)} />
-            <Toggle label="Featured on homepage" checked={f.featured} onChange={(v) => set("featured", v)} />
-          </div>
+          {!vendorMode && (
+            <>
+              <Field label="Sort order"><Input type="number" value={f.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} /></Field>
+              <div className="space-y-2 border-t border-navy-100 pt-3">
+                <Toggle label="Published (visible on site)" checked={f.published} onChange={(v) => set("published", v)} />
+                <Toggle label="Featured on homepage" checked={f.featured} onChange={(v) => set("featured", v)} />
+              </div>
+            </>
+          )}
+          {vendorMode && (
+            <p className="text-sm text-navy-500">
+              An admin reviews this before it goes live — you can&apos;t publish or feature it directly.
+            </p>
+          )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <div className="space-y-2 pt-2">
             <Button variant="brand" className="w-full" disabled={busy || !f.title} onClick={() => save()}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save</>}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> {vendorMode ? "Save draft" : "Save"}</>}
             </Button>
-            {!f.published && (
+            {!vendorMode && !f.published && (
               <Button variant="primary" className="w-full" disabled={busy || !f.title} onClick={() => save(true)}>Save &amp; publish</Button>
             )}
           </div>

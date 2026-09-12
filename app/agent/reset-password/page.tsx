@@ -43,7 +43,7 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
                   : "This link is invalid"}
             </h1>
             <p className="mt-2 text-sm" style={{ color: "var(--mb-muted)" }}>
-              Reset links expire 30 minutes after they&apos;re issued and can only be used once. Request a fresh link and try again.
+              Reset links expire 60 minutes after they&apos;re issued and can only be used once. Request a fresh link and try again.
             </p>
             <Link
               href="/agent/forgot-password"
