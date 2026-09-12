@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Plane, KeyRound } from "lucide-react";
+import { Loader2, Plane, KeyRound, Eye, EyeOff } from "lucide-react";
 import { Button, Input, Field } from "@/components/ui";
 import { broadcastAuthChange } from "@/lib/auth/broadcast";
 import { createClient } from "@/lib/supabase/client";
@@ -68,6 +68,7 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Admin-only captcha: render nothing (and require nothing) if the site key
   // isn't configured, so an admin panel without Turnstile set up still logs
@@ -129,19 +130,35 @@ export function LoginForm({
           <Input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </Field>
         <Field label="Password">
-          <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </Field>
-        {role === "AGENT" && (
-          <div className="-mt-2 text-right">
-            <Link
-              href="/agent/forgot-password"
-              className="text-sm hover:underline"
-              style={{ color: "var(--mb-accent)" }}
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center"
+              style={{ color: "var(--mb-muted)" }}
             >
-              Forgot password?
-            </Link>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-        )}
+        </Field>
+        <div className="-mt-2 text-right">
+          <Link
+            href={role === "ADMIN" ? "/admin/forgot-password" : "/agent/forgot-password"}
+            className="text-sm hover:underline"
+            style={{ color: "var(--mb-accent)" }}
+          >
+            Forgot password?
+          </Link>
+        </div>
         {role === "ADMIN" && captchaRequired && (
           <Turnstile onVerify={setCaptchaToken} />
         )}

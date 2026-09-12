@@ -12,7 +12,15 @@ import { Button, Input, Field } from "@/components/ui";
  * app/api/auth/forgot-password/route.ts) matches this behaviour so the
  * page cannot be used to enumerate registered addresses.
  */
-export function ForgotPasswordForm({ brandName = "Moksh Booking", logoUrl }: { brandName?: string; logoUrl?: string | null }) {
+export function ForgotPasswordForm({
+  brandName = "Moksh Booking",
+  logoUrl,
+  loginHref = "/agent/login",
+}: {
+  brandName?: string;
+  logoUrl?: string | null;
+  loginHref?: string;
+}) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -60,7 +68,7 @@ export function ForgotPasswordForm({ brandName = "Moksh Booking", logoUrl }: { b
           .
         </p>
         <div className="mt-6">
-          <Link href="/agent/login" className="text-sm text-navy-500 hover:text-navy-800">
+          <Link href={loginHref} className="text-sm text-navy-500 hover:text-navy-800">
             Back to sign in
           </Link>
         </div>
@@ -110,7 +118,7 @@ export function ForgotPasswordForm({ brandName = "Moksh Booking", logoUrl }: { b
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/agent/login" className="text-sm text-navy-500 hover:text-navy-800">
+        <Link href={loginHref} className="text-sm text-navy-500 hover:text-navy-800">
           Back to sign in
         </Link>
       </div>

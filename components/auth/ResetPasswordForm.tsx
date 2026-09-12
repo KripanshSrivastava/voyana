@@ -19,11 +19,13 @@ export function ResetPasswordForm({
   email,
   brandName = "Moksh Booking",
   logoUrl,
+  loginHref = "/agent/login",
 }: {
   token: string;
   email: string;
   brandName?: string;
   logoUrl?: string | null;
+  loginHref?: string;
 }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -54,7 +56,7 @@ export function ResetPasswordForm({
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Could not reset password.");
       setDone(true);
-      setTimeout(() => router.push("/agent/login"), 1600);
+      setTimeout(() => router.push(loginHref), 1600);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reset password.");
       setBusy(false);

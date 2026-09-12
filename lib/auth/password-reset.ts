@@ -41,7 +41,7 @@ function appUrl(): string {
  */
 export async function requestPasswordReset(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true, name: true, email: true } });
+  const user = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true, name: true, email: true, role: true } });
   if (!user) return; // Silent no-op — do not reveal that the email is unknown.
 
   // Invalidate any previously issued reset tokens so only the newest link works.
@@ -60,7 +60,10 @@ export async function requestPasswordReset(email: string): Promise<void> {
     },
   });
 
-  const link = `${appUrl()}/agent/reset-password?token=${rawToken}`;
+  // ADMIN gets the admin-branded reset page; everyone else (AGENT/CUSTOMER)
+  // gets the agent one — same underlying token/redeem flow either way.
+  const resetPath = user.role === "ADMIN" ? "/admin/reset-password" : "/agent/reset-password";
+  const link = `${appUrl()}${resetPath}?token=${rawToken}`;
   await sendEmail({
     to: user.email,
     ...passwordResetEmail({ name: user.name, link, expiresMinutes: EXPIRES_MINUTES }),
