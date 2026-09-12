@@ -2,24 +2,8 @@ import { prisma } from "@/lib/db";
 import { handler, ok, fail } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
-import { LEAD_QUALITIES } from "@/lib/constants";
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).slice(0, 50) : []);
-
-/** Coerces a body field into a positive integer or null. `null` means "no
- *  filter set" — matcher treats it as a wildcard. */
-function optInt(v: unknown): number | null {
-  if (v == null || v === "") return null;
-  const n = Number(v);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.floor(n);
-}
-
-/** Validates that a quality string is one of the recognised buckets (or null). */
-function optQuality(v: unknown): string | null {
-  if (typeof v !== "string" || !v) return null;
-  return (LEAD_QUALITIES as readonly string[]).includes(v) ? v : null;
-}
 
 /** Load the vendor's alert + auto-buy preferences. */
 export const GET = handler(async () => {
@@ -34,12 +18,11 @@ export const GET = handler(async () => {
  *
  * Fields accepted:
  * - `alertCategories`, `alertDestinations` — legacy string-list filters
- * - `alertMinQuality` — one of LEAD_QUALITIES (or null = any)
- * - `alertMinBudget` / `alertMaxBudget` — trip-budget range in rupees
- * - same three-tuple mirrored for `autoBuy…`
+ * - `autoBuyCategories`, `autoBuyDestinations`, `autoBuyClientLocations`
  *
- * All are optional — null / empty means "wildcard" in the matcher (see
- * lib/leads/matching.ts).
+ * Minimum-quality and trip-budget filters were removed from this form —
+ * never write alertMinQuality/autoBuyMinQuality/*Budget from here, so they
+ * stay wildcards (null) in the matcher (see lib/leads/matching.ts).
  */
 export const PUT = handler(async (req: Request) => {
   const session = await requireRole("AGENT");
@@ -56,16 +39,10 @@ export const PUT = handler(async (req: Request) => {
     alertWhatsapp: Boolean(b.alertWhatsapp),
     alertCategories: JSON.stringify(arr(b.alertCategories)),
     alertDestinations: JSON.stringify(arr(b.alertDestinations)),
-    alertMinQuality: optQuality(b.alertMinQuality),
-    alertMinBudget: optInt(b.alertMinBudget),
-    alertMaxBudget: optInt(b.alertMaxBudget),
     autoBuyEnabled,
     autoBuyCategories: JSON.stringify(arr(b.autoBuyCategories)),
     autoBuyDestinations: JSON.stringify(arr(b.autoBuyDestinations)),
     autoBuyClientLocations: JSON.stringify(arr(b.autoBuyClientLocations)),
-    autoBuyMinQuality: optQuality(b.autoBuyMinQuality),
-    autoBuyMinBudget: optInt(b.autoBuyMinBudget),
-    autoBuyMaxBudget: optInt(b.autoBuyMaxBudget),
   };
 
   await prisma.agentPreference.upsert({

@@ -18,16 +18,10 @@ export default async function PreferencesPage() {
     alertWhatsapp: pref?.alertWhatsapp ?? false,
     alertCategories: parseJson<string[]>(pref?.alertCategories ?? null, []),
     alertDestinations: parseJson<string[]>(pref?.alertDestinations ?? null, []).join(", "),
-    alertMinQuality: pref?.alertMinQuality ?? "",
-    alertMinBudget: pref?.alertMinBudget != null ? String(pref.alertMinBudget) : "",
-    alertMaxBudget: pref?.alertMaxBudget != null ? String(pref.alertMaxBudget) : "",
     autoBuyEnabled: pref?.autoBuyEnabled ?? false,
     autoBuyCategories: parseJson<string[]>(pref?.autoBuyCategories ?? null, []),
     autoBuyDestinations: parseJson<string[]>(pref?.autoBuyDestinations ?? null, []).join(", "),
     autoBuyClientLocations: parseJson<string[]>(pref?.autoBuyClientLocations ?? null, []).join(", "),
-    autoBuyMinQuality: pref?.autoBuyMinQuality ?? "",
-    autoBuyMinBudget: pref?.autoBuyMinBudget != null ? String(pref.autoBuyMinBudget) : "",
-    autoBuyMaxBudget: pref?.autoBuyMaxBudget != null ? String(pref.autoBuyMaxBudget) : "",
   };
 
   return (
