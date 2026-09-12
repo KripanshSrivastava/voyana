@@ -14,7 +14,7 @@ import type { Prisma } from "@prisma/client";
 // enquiries are available to buy. Terminal-negative statuses (LOST,
 // INVALID, DUPLICATE, NEW-not-yet-published, CONTACTED-pre-marketplace)
 // stay excluded — nothing useful for an agent to see there.
-const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED", "IN_PROGRESS", "CONVERTED"];
+export const AVAILABLE_STATUSES = ["QUALIFIED", "AVAILABLE", "SHARED", "IN_PROGRESS", "CONVERTED"];
 
 // Narrow projections — the marketplace card + purchases table only need a
 // handful of fields, and pre-purchase agents must never see phone/email/name.

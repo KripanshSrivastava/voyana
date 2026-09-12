@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { handler, ok, fail } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
+import { runAutoBuyForAgent } from "@/lib/leads/autobuy";
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).slice(0, 50) : []);
 
@@ -55,5 +56,16 @@ export const PUT = handler(async (req: Request) => {
     create: { agentId: session.agentId, ...data },
     update: data,
   });
+
+  // Auto-buy previously only ran against brand-new leads as they arrived —
+  // an agent turning it on (or widening their filters) got nothing until
+  // the next fresh enquiry. Fire-and-forget a pass over the existing
+  // marketplace backlog too, so it takes effect immediately.
+  if (autoBuyEnabled) {
+    void runAutoBuyForAgent(session.agentId).catch((e) =>
+      console.error("[preferences] backlog auto-buy failed for agentId=%s:", session.agentId, e),
+    );
+  }
+
   return ok({ saved: true, autoBuyEnabled });
 });
