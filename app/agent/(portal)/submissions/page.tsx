@@ -61,11 +61,9 @@ export default async function AgentSubmissionsPage() {
                 </div>
                 {EDITABLE_STATUSES.has(it.status) && (
                   <div className="flex items-center gap-2">
-                    {it.type === "package" && (
-                      <ButtonLink href={`/agent/submissions/packages/${it.id}/edit`} variant="outline" size="sm">
-                        Edit
-                      </ButtonLink>
-                    )}
+                    <ButtonLink href={`/agent/submissions/${it.type === "package" ? "packages" : "destinations"}/${it.id}/edit`} variant="outline" size="sm">
+                      Edit
+                    </ButtonLink>
                     <SubmitForReviewButton type={it.type} id={it.id} />
                   </div>
                 )}

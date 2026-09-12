@@ -45,7 +45,20 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-export function DestinationEditor({ id, initial }: { id?: string; initial?: DestinationFormValue }) {
+export function DestinationEditor({
+  id,
+  initial,
+  vendorMode,
+  onSaved,
+}: {
+  id?: string;
+  initial?: DestinationFormValue;
+  /** Vendor/agent submission mode: hides publish/feature/sort-order/noindex/
+   *  category controls (admin-only) and posts to the vendor endpoints instead. */
+  vendorMode?: boolean;
+  /** Vendor mode only — called with the saved id after a successful create/edit. */
+  onSaved?: (id: string) => void;
+}) {
   const router = useRouter();
   const [f, setF] = useState<DestinationFormValue>(initial ?? emptyDestination);
   const [slugTouched, setSlugTouched] = useState(Boolean(initial?.slug));
@@ -57,25 +70,46 @@ export function DestinationEditor({ id, initial }: { id?: string; initial?: Dest
     setBusy(true);
     setError(null);
     try {
-      const payload = {
-        ...f,
-        slug: f.slug || slugify(f.name),
-        startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
-        sortOrder: Number(f.sortOrder) || 0,
-        category: f.category || null,
-        published: publishNow ?? f.published,
-      };
-      const res = await fetch(id ? `/api/admin/destinations/${id}` : "/api/admin/destinations", {
+      const payload = vendorMode
+        ? {
+            name: f.name,
+            shortDescription: f.shortDescription,
+            longDescription: f.longDescription,
+            heroImage: f.heroImage,
+            gallery: f.gallery,
+            startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
+            bestTime: f.bestTime,
+            tripTypes: f.tripTypes,
+            highlights: f.highlights,
+            faqs: f.faqs,
+          }
+        : {
+            ...f,
+            slug: f.slug || slugify(f.name),
+            startingPrice: f.startingPrice ? Number(f.startingPrice) : null,
+            sortOrder: Number(f.sortOrder) || 0,
+            category: f.category || null,
+            published: publishNow ?? f.published,
+          };
+      const url = vendorMode
+        ? id ? `/api/agent/destinations/${id}` : "/api/agent/destinations"
+        : id ? `/api/admin/destinations/${id}` : "/api/admin/destinations";
+      const res = await fetch(url, {
         method: id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(vendorMode && id ? { details: payload } : payload),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "Save failed");
-      router.push("/admin/destinations");
+      if (vendorMode) {
+        onSaved?.(id ?? json.data.id);
+      } else {
+        router.push("/admin/destinations");
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
+    } finally {
       setBusy(false);
     }
   }
@@ -89,9 +123,11 @@ export function DestinationEditor({ id, initial }: { id?: string; initial?: Dest
             <Field label="Destination name">
               <Input value={f.name} onChange={(e) => { set("name", e.target.value); if (!slugTouched) set("slug", slugify(e.target.value)); }} />
             </Field>
-            <Field label="Slug" hint="Used in the URL: /destinations/your-slug">
-              <Input value={f.slug} onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
-            </Field>
+            {!vendorMode && (
+              <Field label="Slug" hint="Used in the URL: /destinations/your-slug">
+                <Input value={f.slug} onChange={(e) => { setSlugTouched(true); set("slug", slugify(e.target.value)); }} />
+              </Field>
+            )}
             <Field label="Short description">
               <Textarea rows={2} value={f.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} />
             </Field>
@@ -103,53 +139,76 @@ export function DestinationEditor({ id, initial }: { id?: string; initial?: Dest
 
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-navy-900">Images</h2>
-          <SingleImage value={f.heroImage} onChange={(v) => set("heroImage", v)} folder="destinations" />
-          <GalleryImages value={f.gallery} onChange={(v) => set("gallery", v)} folder="destinations" />
+          <SingleImage
+            value={f.heroImage}
+            onChange={(v) => set("heroImage", v)}
+            folder={vendorMode ? "vendor-submissions" : "destinations"}
+            endpoint={vendorMode ? "/api/agent/media" : undefined}
+          />
+          <GalleryImages
+            value={f.gallery}
+            onChange={(v) => set("gallery", v)}
+            folder={vendorMode ? "vendor-submissions" : "destinations"}
+            endpoint={vendorMode ? "/api/agent/media" : undefined}
+          />
         </Card>
 
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-navy-900">Details</h2>
-          <Field label="Category" hint="Classifies leads captured for this destination, so agents' category-based alert and auto-buy rules can match them.">
-            <select
-              value={f.category}
-              onChange={(e) => set("category", e.target.value)}
-              className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm text-navy-900"
-            >
-              <option value="">Unclassified</option>
-              {TRIP_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{titleCase(c)}</option>
-              ))}
-            </select>
-          </Field>
+          {!vendorMode && (
+            <Field label="Category" hint="Classifies leads captured for this destination, so agents' category-based alert and auto-buy rules can match them.">
+              <select
+                value={f.category}
+                onChange={(e) => set("category", e.target.value)}
+                className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm text-navy-900"
+              >
+                <option value="">Unclassified</option>
+                {TRIP_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{titleCase(c)}</option>
+                ))}
+              </select>
+            </Field>
+          )}
           <StringListEditor label="Highlights" items={f.highlights} onChange={(v) => set("highlights", v)} placeholder="e.g. Shikara ride on Dal Lake" />
           <StringListEditor label="Popular trip types" items={f.tripTypes} onChange={(v) => set("tripTypes", v)} placeholder="e.g. Honeymoon" />
           <FaqListEditor items={f.faqs} onChange={(v) => set("faqs", v)} />
         </Card>
 
-        <Card className="p-6 space-y-4">
-          <h2 className="font-semibold text-navy-900">SEO</h2>
-          <Field label="SEO title"><Input value={f.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} /></Field>
-          <Field label="SEO description"><Textarea rows={2} value={f.seoDescription} onChange={(e) => set("seoDescription", e.target.value)} /></Field>
-          <Toggle label="No-index (hide from search engines)" checked={f.noindex} onChange={(v) => set("noindex", v)} />
-        </Card>
+        {!vendorMode && (
+          <Card className="p-6 space-y-4">
+            <h2 className="font-semibold text-navy-900">SEO</h2>
+            <Field label="SEO title"><Input value={f.seoTitle} onChange={(e) => set("seoTitle", e.target.value)} /></Field>
+            <Field label="SEO description"><Textarea rows={2} value={f.seoDescription} onChange={(e) => set("seoDescription", e.target.value)} /></Field>
+            <Toggle label="No-index (hide from search engines)" checked={f.noindex} onChange={(v) => set("noindex", v)} />
+          </Card>
+        )}
       </div>
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <Card className="p-6 space-y-4">
-          <h2 className="font-semibold text-navy-900">Publish</h2>
+          <h2 className="font-semibold text-navy-900">{vendorMode ? "Pricing" : "Publish"}</h2>
           <Field label="Starting price (₹)"><Input type="number" value={f.startingPrice} onChange={(e) => set("startingPrice", e.target.value)} /></Field>
           <Field label="Best time to visit"><Input value={f.bestTime} onChange={(e) => set("bestTime", e.target.value)} placeholder="e.g. Mar–Oct" /></Field>
-          <Field label="Sort order"><Input type="number" value={f.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} /></Field>
-          <div className="space-y-2 border-t border-navy-100 pt-3">
-            <Toggle label="Published (visible on site)" checked={f.published} onChange={(v) => set("published", v)} />
-            <Toggle label="Featured on homepage" checked={f.featured} onChange={(v) => set("featured", v)} />
-          </div>
+          {!vendorMode && (
+            <>
+              <Field label="Sort order"><Input type="number" value={f.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} /></Field>
+              <div className="space-y-2 border-t border-navy-100 pt-3">
+                <Toggle label="Published (visible on site)" checked={f.published} onChange={(v) => set("published", v)} />
+                <Toggle label="Featured on homepage" checked={f.featured} onChange={(v) => set("featured", v)} />
+              </div>
+            </>
+          )}
+          {vendorMode && (
+            <p className="text-sm text-navy-500">
+              An admin reviews this before it goes live — you can&apos;t publish or feature it directly.
+            </p>
+          )}
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <div className="space-y-2 pt-2">
             <Button variant="brand" className="w-full" disabled={busy || !f.name} onClick={() => save()}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save</>}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> {vendorMode ? "Save draft" : "Save"}</>}
             </Button>
-            {!f.published && (
+            {!vendorMode && !f.published && (
               <Button variant="primary" className="w-full" disabled={busy || !f.name} onClick={() => save(true)}>
                 Save &amp; publish
               </Button>

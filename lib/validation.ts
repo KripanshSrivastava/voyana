@@ -143,14 +143,21 @@ export const agentSignupSchema = z.object({
 // Deliberately leaner than the admin CMS schemas below — no slug/SEO/sort
 // fields; those are admin-only concerns applied once content is approved.
 
+// Full content parity with the admin destination editor (gallery, starting
+// price, FAQs) — excludes only `slug`/`category`/SEO/`noindex`/`published`/
+// `featured`/`sortOrder`, which stay admin-only (category in particular
+// drives lead classification, so it's admin-curated, not vendor-set).
 export const vendorDestinationSubmissionSchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(160),
   shortDescription: z.string().max(400).optional().or(z.literal("")),
   longDescription: z.string().max(8000).optional().or(z.literal("")),
+  heroImage: z.string().max(1000).optional().or(z.literal("")),
+  gallery: z.array(z.string()).optional().default([]),
+  startingPrice: z.coerce.number().int().min(0).optional().nullable(),
   bestTime: z.string().max(160).optional().or(z.literal("")),
   tripTypes: z.array(z.string()).optional().default([]),
   highlights: z.array(z.string()).optional().default([]),
-  heroImage: z.string().max(1000).optional().or(z.literal("")),
+  faqs: z.array(z.object({ question: z.string(), answer: z.string() })).optional().default([]),
 });
 
 // Same content fields as `packageSchema` below — vendors get full parity with
