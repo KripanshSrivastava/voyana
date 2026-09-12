@@ -242,12 +242,17 @@ export async function ingestLead(input: IngestInput): Promise<IngestResult> {
     const t = adminNewLead({ code: created.code, destination: input.destinationText, quality, source: input.source, budget: input.budget ?? null, url: `${appUrl()}/admin/leads/${created.id}` });
     sideEffects.push(sendEmail({ to: adminEmail, ...t, category: "leads" }));
   }
-  await Promise.allSettled(sideEffects);
-
-  // A freshly-priced lead is immediately purchasable — give auto-buy-enabled
-  // agents first shot at it (best-effort, non-blocking). Kept sequential after
-  // the fan-out so auto-buy sees a settled state (consistent assignmentCount).
-  await runAutoBuyForLead(created.id);
+  // Fire-and-forget: none of this needs to hold up the HTTP response. The
+  // lead itself is already durably written above; email/WhatsApp/alerts are
+  // best-effort by design (see comment above) and WhatsApp in particular can
+  // take several seconds (or hang) if the Baileys session is degraded — that
+  // used to stall every form submission. Auto-buy still runs strictly after
+  // the fan-out settles, just in the background rather than inline.
+  // Safe because this process runs as a long-lived Docker container, not a
+  // serverless function that freezes after the response is sent.
+  void Promise.allSettled(sideEffects)
+    .then(() => runAutoBuyForLead(created!.id))
+    .catch((e) => console.error("[ingestLead] background tasks failed:", e));
 
   return { lead: created, duplicate: Boolean(dupe), alreadyExisted: false };
 }

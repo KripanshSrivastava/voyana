@@ -96,6 +96,10 @@ async function postToProvider(args: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ to: number, text }),
+      // A degraded/disconnected Baileys session can leave sock.sendMessage()
+      // hanging indefinitely — bound it so a stuck WhatsApp session can never
+      // hang the caller (previously this had no timeout at all).
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {

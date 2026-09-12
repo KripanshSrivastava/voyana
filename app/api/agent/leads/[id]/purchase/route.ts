@@ -29,9 +29,11 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
       purchaseType,
     });
 
-    // Best-effort side effects (never fail the purchase).
-    await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "lead.purchase", entityType: "lead", entityId: id, metadata: { price: result.price, purchaseType: result.purchaseType } });
-    try {
+    // Best-effort side effects (never fail the purchase) — fire-and-forget so
+    // the agent isn't stuck waiting on an audit write + a DB read + an
+    // in-app notify + a Resend API call before seeing their purchase confirm.
+    void (async () => {
+      await logAudit({ actorType: "AGENT", actorId: session.agentId, actorLabel: session.name, action: "lead.purchase", entityType: "lead", entityId: id, metadata: { price: result.price, purchaseType: result.purchaseType } });
       const lead = await prisma.lead.findUnique({ where: { id }, select: { code: true, destinationText: true } });
       if (lead) {
         await notify({ userId: session.uid, type: "purchase", title: `Lead purchased — ${lead.code}`, body: `${lead.destinationText} · ₹${result.price.toLocaleString("en-IN")}. Customer details are now available.`, href: `/agent/leads/${id}` });
@@ -40,9 +42,7 @@ export const POST = handler(async (req: Request, ctx: Ctx) => {
           await sendEmail({ to: session.email, ...t, category: "leads" });
         }
       }
-    } catch (e) {
-      console.error("[purchase] email failed (non-fatal)", e);
-    }
+    })().catch((e) => console.error("[purchase] side effects failed (non-fatal)", e));
 
     return ok(result);
   } catch (e) {
