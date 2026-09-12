@@ -7,9 +7,10 @@ import { parseJson } from "@/lib/utils";
 
 export default async function PreferencesPage() {
   const { agent } = await requireAgent();
-  const [pref, flags] = await Promise.all([
+  const [pref, flags, destinations] = await Promise.all([
     prisma.agentPreference.findUnique({ where: { agentId: agent.id } }),
     getFlags(),
+    prisma.destination.findMany({ where: { published: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const initial: PrefValue = {
@@ -17,17 +18,18 @@ export default async function PreferencesPage() {
     alertInApp: pref?.alertInApp ?? true,
     alertWhatsapp: pref?.alertWhatsapp ?? false,
     alertCategories: parseJson<string[]>(pref?.alertCategories ?? null, []),
-    alertDestinations: parseJson<string[]>(pref?.alertDestinations ?? null, []).join(", "),
+    alertDestinations: parseJson<string[]>(pref?.alertDestinations ?? null, []),
     autoBuyEnabled: pref?.autoBuyEnabled ?? false,
+    autoBuyPurchaseType: pref?.autoBuyPurchaseType === "SHARED" ? "SHARED" : "EXCLUSIVE",
     autoBuyCategories: parseJson<string[]>(pref?.autoBuyCategories ?? null, []),
-    autoBuyDestinations: parseJson<string[]>(pref?.autoBuyDestinations ?? null, []).join(", "),
+    autoBuyDestinations: parseJson<string[]>(pref?.autoBuyDestinations ?? null, []),
     autoBuyClientLocations: parseJson<string[]>(pref?.autoBuyClientLocations ?? null, []).join(", "),
   };
 
   return (
     <div className="max-w-3xl">
       <PageHeader title="Alerts & Auto-Buy" subtitle="Choose which leads you're notified about — and which to buy automatically." />
-      <PreferencesForm initial={initial} autoBuyAllowed={flags.autoBuyEnabled} />
+      <PreferencesForm initial={initial} autoBuyAllowed={flags.autoBuyEnabled} destinations={destinations} />
     </div>
   );
 }

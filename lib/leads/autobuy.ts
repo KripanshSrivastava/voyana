@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "../db";
 import { purchaseLead } from "./purchase";
 import { leadMatches, autoBuyCriteria } from "./matching";
-import { requiresExclusive } from "./pricing";
+import { requiresExclusive, exclusiveEligible } from "./pricing";
 import { notify } from "../notify";
 import { logAudit } from "../audit";
 import { sendEmail } from "../email/mailer";
@@ -21,10 +21,11 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
     if (!lead || lead.price == null || lead.price <= 0) return;
     if (lead.assignmentCount >= lead.maxAgents) return;
 
-    // Auto-buy only ever does SHARED purchases (see purchaseLead call below).
-    // Exclusive-only lead types (INTERNATIONAL) therefore can't be auto-bought —
-    // an agent must click Buy Exclusive themselves. Skip the whole prefs loop.
-    if (requiresExclusive(lead.tripCategory)) return;
+    // Defensive: no lead type is currently exclusive-only (requiresExclusive()
+    // always returns false). If that policy ever comes back, purchaseLead()'s
+    // own transaction still rejects a SHARED purchase on such a lead — the
+    // per-agent purchaseType choice below is what actually matters.
+    const leadRequiresExclusive = requiresExclusive(lead.tripCategory);
 
     const prefs = await prisma.agentPreference.findMany({
       where: { autoBuyEnabled: true },
@@ -49,16 +50,21 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
       const held = await prisma.leadAssignment.findUnique({ where: { leadId_agentId: { leadId, agentId: agent.id } } });
       if (held) continue;
 
+      // Agent-chosen purchase type. EXCLUSIVE requires the lead still be
+      // fully fresh (no existing assignments) — otherwise it wouldn't
+      // actually be exclusive, so skip this agent rather than silently
+      // downgrading to SHARED without their consent.
+      const wantsExclusive = pref.autoBuyPurchaseType === "EXCLUSIVE" || leadRequiresExclusive;
+      if (wantsExclusive && !exclusiveEligible(current.assignmentCount)) continue;
+      const purchaseType = wantsExclusive ? "EXCLUSIVE" : "SHARED";
+
       if (process.env.NODE_ENV !== "production") {
-        console.log("[autobuy] leadId=%s autoBuyAgentId=%s", leadId, agent.id);
+        console.log("[autobuy] leadId=%s autoBuyAgentId=%s purchaseType=%s", leadId, agent.id, purchaseType);
       }
 
       // --- Purchase via the shared atomic transaction ---
       try {
-        // Auto-buy is always SHARED — buying exclusive on an agent's behalf
-        // without their per-lead consent would be too aggressive. Agents who
-        // want exclusive click the button themselves.
-        const purchase = await purchaseLead({ leadId, agentId: agent.id, actor: "AGENT", actorLabel: `${agent.companyName} (auto-buy)`, purchaseType: "SHARED" });
+        const purchase = await purchaseLead({ leadId, agentId: agent.id, actor: "AGENT", actorLabel: `${agent.companyName} (auto-buy)`, purchaseType });
         // Use the server-computed price from the purchase result — the local
         // `price` variable was read from lead.price which may be stale.
         const charged = purchase.price;

@@ -136,6 +136,7 @@ model AgentPreference {
 
   // auto-buy
   autoBuyEnabled         Boolean   @default(false)
+  autoBuyPurchaseType    String    @default("EXCLUSIVE") // SHARED | EXCLUSIVE — which purchase type auto-buy uses
   autoBuyCategories      String? // JSON array
   autoBuyDestinations    String? // JSON array of keywords
   autoBuyClientLocations String? // JSON array of keywords

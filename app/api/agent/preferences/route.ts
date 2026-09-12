@@ -5,6 +5,10 @@ import { getSiteSettings } from "@/lib/settings";
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).slice(0, 50) : []);
 
+function purchaseType(v: unknown): "SHARED" | "EXCLUSIVE" {
+  return v === "SHARED" ? "SHARED" : "EXCLUSIVE";
+}
+
 /** Load the vendor's alert + auto-buy preferences. */
 export const GET = handler(async () => {
   const session = await requireRole("AGENT");
@@ -40,6 +44,7 @@ export const PUT = handler(async (req: Request) => {
     alertCategories: JSON.stringify(arr(b.alertCategories)),
     alertDestinations: JSON.stringify(arr(b.alertDestinations)),
     autoBuyEnabled,
+    autoBuyPurchaseType: purchaseType(b.autoBuyPurchaseType),
     autoBuyCategories: JSON.stringify(arr(b.autoBuyCategories)),
     autoBuyDestinations: JSON.stringify(arr(b.autoBuyDestinations)),
     autoBuyClientLocations: JSON.stringify(arr(b.autoBuyClientLocations)),
