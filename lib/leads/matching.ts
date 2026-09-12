@@ -48,7 +48,13 @@ function qualityAtLeast(leadQuality: string, min: string): boolean {
 
 /** Does a lead satisfy an alert/auto-buy rule? Empty/absent criteria are wildcards. */
 export function leadMatches(lead: MatchableLead, c: MatchCriteria): boolean {
-  if (c.categories?.length && !(lead.tripCategory && c.categories.includes(lead.tripCategory))) return false;
+  // Category checks only apply when the lead actually carries a category —
+  // free-text/organic leads with no linked Destination never get classified
+  // (see docs/DATABASE_ARCHITECTURE.md), so treating "unclassified" as an
+  // automatic reject would silently block most real-world leads from ever
+  // matching a category filter. Same wildcard-on-missing-data principle as
+  // the budget check below.
+  if (c.categories?.length && lead.tripCategory && !c.categories.includes(lead.tripCategory)) return false;
   if (c.destinations?.length && !anyKeyword(lead.destinationText, c.destinations)) return false;
   if (c.clientLocations?.length && !anyKeyword(lead.clientLocation ?? lead.departureCity, c.clientLocations)) return false;
   if (c.minQuality && !qualityAtLeast(lead.quality, c.minQuality)) return false;

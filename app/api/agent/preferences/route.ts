@@ -25,9 +25,10 @@ export const GET = handler(async () => {
  * - `alertCategories`, `alertDestinations` — legacy string-list filters
  * - `autoBuyCategories`, `autoBuyDestinations`, `autoBuyClientLocations`
  *
- * Minimum-quality and trip-budget filters were removed from this form —
- * never write alertMinQuality/autoBuyMinQuality/*Budget from here, so they
- * stay wildcards (null) in the matcher (see lib/leads/matching.ts).
+ * Minimum-quality and trip-budget filters were removed from this form.
+ * Explicitly nulled below (not just omitted) — a plain `upsert` leaves
+ * untouched fields as-is, so any row saved before this removal would
+ * otherwise keep silently filtering on stale values forever.
  */
 export const PUT = handler(async (req: Request) => {
   const session = await requireRole("AGENT");
@@ -44,11 +45,17 @@ export const PUT = handler(async (req: Request) => {
     alertWhatsapp: Boolean(b.alertWhatsapp),
     alertCategories: JSON.stringify(arr(b.alertCategories)),
     alertDestinations: JSON.stringify(arr(b.alertDestinations)),
+    alertMinQuality: null,
+    alertMinBudget: null,
+    alertMaxBudget: null,
     autoBuyEnabled,
     autoBuyPurchaseType: purchaseType(b.autoBuyPurchaseType),
     autoBuyCategories: JSON.stringify(arr(b.autoBuyCategories)),
     autoBuyDestinations: JSON.stringify(arr(b.autoBuyDestinations)),
     autoBuyClientLocations: JSON.stringify(arr(b.autoBuyClientLocations)),
+    autoBuyMinQuality: null,
+    autoBuyMinBudget: null,
+    autoBuyMaxBudget: null,
   };
 
   await prisma.agentPreference.upsert({
