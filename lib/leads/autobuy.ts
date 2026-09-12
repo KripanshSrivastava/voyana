@@ -85,8 +85,11 @@ export async function runAutoBuyForLead(leadId: string): Promise<void> {
           }
         }
         await logAudit({ actorType: "SYSTEM", action: "lead.autobuy", entityType: "lead", entityId: leadId, metadata: { agentId: agent.id, price: charged } });
-      } catch {
-        // Race lost, insufficient funds at commit, cap filled — skip this agent.
+      } catch (e) {
+        // Race lost, insufficient funds at commit, cap filled — skip this
+        // agent, but log it: this used to be a silent catch, which made
+        // auto-buy failures invisible even when every agent was failing.
+        console.error("[autobuy] purchase attempt failed for agentId=%s leadId=%s:", agent.id, leadId, e);
       }
     }
   } catch (e) {
